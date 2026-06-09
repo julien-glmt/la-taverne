@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link"; // <-- 1. On importe Link
 
 const games = [
   {
@@ -79,14 +80,9 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col gap-3">
-            {games.map((game) => (
-              <div
-                key={game.id}
-                onMouseEnter={() => setHovered(game.id)}
-                onMouseLeave={() => setHovered(null)}
-                className="relative group"
-                style={{ cursor: game.available ? "pointer" : "default" }}
-              >
+            {games.map((game) => {
+              // 2. On prépare le composant de base pour la carte du jeu
+              const CardContent = (
                 <div
                   className="flex items-center gap-5 p-5 rounded-sm transition-all duration-200"
                   style={{
@@ -139,8 +135,32 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+
+              // 3. Si le jeu est dispo, on l'entoure d'un <Link>, sinon on laisse une simple div
+              if (game.available) {
+                return (
+                  <Link
+                    href={`/${game.id}`} // Redirige vers /undercover
+                    key={game.id}
+                    onMouseEnter={() => setHovered(game.id)}
+                    onMouseLeave={() => setHovered(null)}
+                    className="block relative group decoration-transparent"
+                  >
+                    {CardContent}
+                  </Link>
+                );
+              } else {
+                return (
+                  <div
+                    key={game.id}
+                    className="relative opacity-40 cursor-default"
+                  >
+                    {CardContent}
+                  </div>
+                );
+              }
+            })}
           </div>
         </section>
 
