@@ -68,7 +68,7 @@ export default function Home() {
             <div className="h-px w-16 bg-gradient-to-l from-transparent to-[#5a4020]" />
           </div>
           <p className="text-[#7a6848] text-sm leading-relaxed max-w-sm mx-auto">
-            Choisis ton jeu, invite tes potes avec un code, et que la meilleure équipe gagne.
+            Choisis ton jeu.
           </p>
         </header>
 

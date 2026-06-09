@@ -13,7 +13,7 @@ type Player = {
   is_ready: boolean;
   words_said: string[];
   word_count: number;
-  voted_for: string | null;Ò
+  voted_for: string | null;
   vote_locked: boolean;
 };
 
