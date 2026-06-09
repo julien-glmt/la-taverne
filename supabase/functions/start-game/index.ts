@@ -22,9 +22,11 @@ Deno.serve(async (req) => {
   // CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", {
+      status: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
       },
     });
   }
@@ -70,9 +72,11 @@ Deno.serve(async (req) => {
     }
 
     // Vérifier que tous sont prêts
-    const allReady = players.every((p) => p.is_ready);
-    if (!allReady) {
-      return Response.json({ error: "Tous les joueurs doivent être prêts" }, { status: 400 });
+    if (!keepRound) {
+      const allReady = players.every((p) => p.is_ready);
+      if (!allReady) {
+        return Response.json({ error: "Tous les joueurs doivent être prêts" }, { status: 400 });
+      }
     }
 
     // Choisir une paire de mots aléatoire
@@ -105,13 +109,14 @@ Deno.serve(async (req) => {
     }
 
     // Mettre à jour la salle
+    const { roomId, hostName, keepRound } = await req.json();
     const firstPlayerIndex = Math.floor(Math.random() * shuffled.length);
     await supabase.from("rooms").update({
       status: "playing",
       phase: "playing",
       word_civilian: pair.civilian,
       word_undercover: pair.undercover,
-      current_round: 1,
+      current_round: keepRound ? room.current_round : 1,
       current_player_index: firstPlayerIndex,
       turn_started_at: new Date().toISOString(),
     }).eq("id", roomId);
