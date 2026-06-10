@@ -139,10 +139,35 @@ export default function GameRoom() {
         if (!roomData) { setError("Salle introuvable. Vérifie le code."); setLoading(false); return; }
       }
 
-      const { data: newPlayer } = await supabase.from("players")
-        .insert({ room_id: code, name: playerName, avatar: playerAvatar, is_ready: isHost, score: 0 })
-        .select().single();
-      if (newPlayer) setMyPlayer(newPlayer);
+      // Vérifier si on a déjà un ID joueur en localStorage
+      const storageKey = `player_${code}`;
+      const existingPlayerId = localStorage.getItem(storageKey);
+
+      if (existingPlayerId) {
+        // Essayer de récupérer le joueur existant
+        const { data: existingPlayer } = await supabase
+          .from("players").select("*").eq("id", existingPlayerId).single();
+        if (existingPlayer) {
+          setMyPlayer(existingPlayer);
+        } else {
+          // Joueur introuvable, en créer un nouveau
+          const { data: newPlayer } = await supabase.from("players")
+            .insert({ room_id: code, name: playerName, avatar: playerAvatar, is_ready: isHost, score: 0 })
+            .select().single();
+          if (newPlayer) {
+            setMyPlayer(newPlayer);
+            localStorage.setItem(storageKey, newPlayer.id);
+          }
+        }
+      } else {
+        const { data: newPlayer } = await supabase.from("players")
+          .insert({ room_id: code, name: playerName, avatar: playerAvatar, is_ready: isHost, score: 0 })
+          .select().single();
+        if (newPlayer) {
+          setMyPlayer(newPlayer);
+          localStorage.setItem(storageKey, newPlayer.id);
+        }
+      }
 
       await fetchRoom();
       await fetchPlayers();

@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     }
 
     if (mrWhitePlayer) {
-      if (mainSuspectId !== mrWhitePlayer.id) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 250;
+      if (mainSuspectId !== mrWhitePlayer.id) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 200;
       if (mrWhiteGuessedCorrect) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 100;
       if (undercoverEliminated) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 100;
     }
