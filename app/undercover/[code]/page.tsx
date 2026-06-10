@@ -427,22 +427,62 @@ export default function GameRoom() {
               </h2>
             </div>
 
-            {/* Podium */}
-            <div className="mb-6">
-              <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-4">🏆 Classement final</p>
-              <div className="flex flex-col gap-2">
-                {sortedByScore.map((p, i) => (
-                  <div key={p.id} className="flex items-center gap-3 px-4 py-3 rounded-sm"
-                    style={{ background: i === 0 ? "rgba(200,160,48,0.1)" : "rgba(255,255,255,0.02)", border: `1px solid ${i === 0 ? "rgba(200,160,48,0.3)" : "rgba(255,255,255,0.05)"}` }}>
-                    <span className="text-lg w-6">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}</span>
-                    <span className="text-xl">{p.avatar}</span>
-                    <span className="text-sm text-[#c8b888] flex-1">{p.name}</span>
-                    <span className="text-xs text-[#4a3820]">{p.role === "undercover" ? "🕵️" : p.role === "mrwhite" ? "👻" : "👤"}</span>
-                    <span className="text-sm font-mono text-[#c8a030]">{p.score || 0} pts</span>
-                  </div>
-                ))}
+        <div className="mb-8">
+          <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-6 text-center">🏆 Classement final</p>
+
+          {/* Podium visuel Top 3 */}
+          {sortedByScore.length >= 3 && (
+            <div className="flex items-end justify-center gap-3 mb-8">
+              {/* 2ème place */}
+              <div className="flex flex-col items-center flex-1">
+                <span className="text-3xl mb-1">{sortedByScore[1]?.avatar}</span>
+                <p className="text-xs text-[#c8b888] mb-2 text-center truncate w-full px-1">{sortedByScore[1]?.name}</p>
+                <p className="text-xs text-[#c8a030] mb-2">{sortedByScore[1]?.score || 0} pts</p>
+                <div className="w-full rounded-t-sm flex items-center justify-center py-4"
+                  style={{ background: "rgba(180,180,180,0.15)", border: "1px solid rgba(180,180,180,0.3)", minHeight: "60px" }}>
+                  <span className="text-2xl">🥈</span>
+                </div>
+              </div>
+
+              {/* 1ère place */}
+              <div className="flex flex-col items-center flex-1">
+                <span className="text-4xl mb-1">{sortedByScore[0]?.avatar}</span>
+                <p className="text-xs text-[#c8b888] mb-2 text-center truncate w-full px-1 font-medium">{sortedByScore[0]?.name}</p>
+                <p className="text-xs text-[#c8a030] mb-2 font-medium">{sortedByScore[0]?.score || 0} pts</p>
+                <div className="w-full rounded-t-sm flex items-center justify-center py-6"
+                  style={{ background: "rgba(200,160,48,0.2)", border: "1px solid rgba(200,160,48,0.4)", minHeight: "80px" }}>
+                  <span className="text-2xl">🥇</span>
+                </div>
+              </div>
+
+              {/* 3ème place */}
+              <div className="flex flex-col items-center flex-1">
+                <span className="text-3xl mb-1">{sortedByScore[2]?.avatar}</span>
+                <p className="text-xs text-[#c8b888] mb-2 text-center truncate w-full px-1">{sortedByScore[2]?.name}</p>
+                <p className="text-xs text-[#c8a030] mb-2">{sortedByScore[2]?.score || 0} pts</p>
+                <div className="w-full rounded-t-sm flex items-center justify-center py-3"
+                  style={{ background: "rgba(150,100,50,0.15)", border: "1px solid rgba(150,100,50,0.3)", minHeight: "45px" }}>
+                  <span className="text-2xl">🥉</span>
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Reste du classement */}
+          {sortedByScore.length > 3 && (
+            <div className="flex flex-col gap-2">
+              {sortedByScore.slice(3).map((p, i) => (
+                <div key={p.id} className="flex items-center gap-3 px-4 py-3 rounded-sm"
+                  style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <span className="text-sm w-4 text-[#4a3820]">{i + 4}.</span>
+                  <span className="text-xl">{p.avatar}</span>
+                  <span className="text-sm text-[#c8b888] flex-1">{p.name}</span>
+                  <span className="text-sm font-mono text-[#c8a030]">{p.score || 0} pts</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
             {/* Historique */}
             {room?.round_history && room.round_history.length > 0 && (
@@ -558,14 +598,6 @@ export default function GameRoom() {
               <div className="text-4xl mb-3">{eliminatedPlayer?.role === "undercover" ? "🎉" : eliminatedPlayer?.role === "mrwhite" ? "👻" : "🗳️"}</div>              <h2 className="text-xl text-[#f0e0b0] mb-2" style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>
                 Fin de manche {room?.current_round}
               </h2>
-              {(() => {
-                const lastRound = room?.round_history?.[room.round_history.length - 1];
-                return lastRound ? (
-                  <p className="text-xs text-[#4a3820] mt-2">
-                    Civils : <strong className="text-[#c8b888]">{lastRound.word_civilian}</strong> · Undercover : <strong className="text-[#c8b888]">{lastRound.word_undercover}</strong>
-                  </p>
-                ) : null;
-              })()}
               {room?.mr_white_guess && (
                 <p className="text-xs text-[#6a5838] mt-1">
                   Mr. White a dit : <strong className="text-[#c8b888]">"{room.mr_white_guess}"</strong>
