@@ -16,6 +16,7 @@ type Player = {
   voted_for: string | null;
   vote_locked: boolean;
   score: number;
+  voted_for_mrwhite: string | null;
 };
 
 type Room = {
@@ -73,10 +74,11 @@ export default function GameRoom() {
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [myPlayer, setMyPlayer] = useState<Player | null>(null);
-  const [wordRevealed, setWordRevealed] = useState(false);
+  const [wordRevealed, setWordRevealed] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [votedFor, setVotedFor] = useState<string | null>(null);
+  const [votedForMrWhite, setVotedForMrWhite] = useState<string | null>(null);
   const [wordInput, setWordInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; emoji: string; x: number }[]>([]);
@@ -88,6 +90,7 @@ export default function GameRoom() {
   const mrWhiteTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoSubmitRef = useRef(false);
   const emojiCounter = useRef(0);
+  const mrWhiteInGame = players.some(p => p.role === "mrwhite");
 
   const [settings, setSettings] = useState({
     max_undercovers: 1, mr_white_enabled: false,
@@ -223,13 +226,54 @@ export default function GameRoom() {
 
   async function startGame() {
     setError("");
-    const { error: fnError } = await supabase.functions.invoke("start-game", {
-      body: { roomId: code, hostName: playerName },
-    });
-    if (fnError) setError("Erreur au lancement : " + fnError.message);
+    if (players.length < 3) { setError("Il faut au moins 3 joueurs."); return; }
+    if (!players.every(p => p.is_ready)) { setError("Tous les joueurs doivent être prêts."); return; }
+
+    const WORD_PAIRS = [
+      { civilian: "Chien", undercover: "Loup" },
+      { civilian: "Plage", undercover: "Piscine" },
+      { civilian: "Pizza", undercover: "Tarte" },
+      { civilian: "Voiture", undercover: "Moto" },
+      { civilian: "Café", undercover: "Thé" },
+      { civilian: "Cinéma", undercover: "Théâtre" },
+      { civilian: "Football", undercover: "Rugby" },
+      { civilian: "Guitare", undercover: "Violon" },
+      { civilian: "Paris", undercover: "Lyon" },
+      { civilian: "Été", undercover: "Printemps" },
+      { civilian: "Montagne", undercover: "Volcan" },
+      { civilian: "Château", undercover: "Palais" },
+    ];
+
+    const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
+    const shuffled = [...players].sort(() => Math.random() - 0.5);
+    const undercoverCount = Math.min(settings.max_undercovers, shuffled.length - 2);
+
+    for (let i = 0; i < shuffled.length; i++) {
+      let role = "civilian";
+      let word = pair.civilian;
+      if (i < undercoverCount) { role = "undercover"; word = pair.undercover; }
+      else if (settings.mr_white_enabled && i === undercoverCount) { role = "mrwhite"; word = "***"; }
+      await supabase.from("players").update({ role, word, is_alive: true }).eq("id", shuffled[i].id);
+    }
+
+    const firstPlayerIndex = Math.floor(Math.random() * shuffled.length);
+
+    await supabase.from("rooms").update({
+      status: "playing",
+      phase: "playing",
+      word_civilian: pair.civilian,
+      word_undercover: pair.undercover,
+      current_round: room?.current_round ?? 0,
+      current_player_index: firstPlayerIndex,
+      turn_started_at: new Date().toISOString(),
+    }).eq("id", code);
   }
 
   async function startNextRound() {
+    if (room?.status === "game_over_pending") {
+      await supabase.from("rooms").update({ status: "game_over", phase: "game_over" }).eq("id", code);
+      return;
+    }
     setError("");
     setRoundResult(null);
     setWordRevealed(false);
@@ -240,13 +284,10 @@ export default function GameRoom() {
     await supabase.from("players").update({
       words_said: [], word_count: 0,
       voted_for: null, vote_locked: false,
-      role: null, word: null, is_alive: true,
+      is_alive: true,
     }).eq("room_id", code);
 
-    const { error: fnError } = await supabase.functions.invoke("start-game", {
-      body: { roomId: code, hostName: playerName, keepRound: true },
-    });
-    if (fnError) setError("Erreur : " + fnError.message);
+    await startGame();
   }
 
   async function handleSubmitWord(forcedWord?: string) {
@@ -271,10 +312,17 @@ export default function GameRoom() {
     });
   }
 
+  async function handleVoteMrWhite(targetId: string) {
+    if (!myPlayer || myPlayer.vote_locked) return;
+    setVotedForMrWhite(targetId);
+    await supabase.from("players").update({ voted_for_mrwhite: targetId }).eq("id", myPlayer.id);
+  }
+
   async function lockVote() {
     if (!myPlayer || !votedFor) return;
+    if (mrWhiteInGame && !votedForMrWhite) return;
     await supabase.functions.invoke("submit-vote", {
-      body: { roomId: code, playerId: myPlayer.id, targetId: votedFor, lock: true },
+      body: { roomId: code, playerId: myPlayer.id, targetId: votedFor, targetMrWhiteId: votedForMrWhite, lock: true },
     });
   }
 
@@ -323,8 +371,7 @@ export default function GameRoom() {
   const isTie = room?.phase === "tie";
   const isRoundResult = room?.phase === "round_result";
   const isMrWhiteGuess = room?.phase === "mrwhite_guess";
-  const isGameOver = ["civilians_win", "undercover_wins", "game_over"].includes(room?.status ?? "");
-  const allReady = players.length >= 3 && players.every(p => p.is_ready);
+  const isGameOver = ["civilians_win", "undercover_wins", "game_over"].includes(room?.status ?? "");  const allReady = players.length >= 3 && players.every(p => p.is_ready);
   const maxUndercovers = players.length <= 4 ? 1 : 2;
 
   const eliminatedPlayer = players.find(p => p.id === room?.last_eliminated_id);
@@ -363,7 +410,7 @@ export default function GameRoom() {
           {room && (isPlaying || isWaitingNextRound) ? (
             <div className="text-right">
               <p className="text-xs text-[#4a3820]">Manche</p>
-              <p className="text-sm text-[#c8b888] font-mono">{room.current_round}/{room.total_rounds}</p>
+              <p className="text-sm text-[#c8b888] font-mono">{(room.current_round ?? 0) + 1}/{room.total_rounds}</p>
             </div>
           ) : <div className="w-16" />}
         </div>
@@ -402,14 +449,57 @@ export default function GameRoom() {
               <div className="mb-6">
                 <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-4">📜 Historique des manches</p>
                 <div className="flex flex-col gap-3">
-                  {room.round_history.map((r: any, i: number) => (
-                    <div key={i} className="p-4 rounded-sm" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                      <p className="text-xs text-[#c8a030] mb-2 font-medium">Manche {r.round}</p>
-                      <p className="text-xs text-[#6a5838] mb-1">Civils : <strong className="text-[#c8b888]">{r.word_civilian}</strong> · Undercover : <strong className="text-[#c8b888]">{r.word_undercover}</strong></p>
-                      {r.eliminated && <p className="text-xs text-[#6a5838]">Éliminé : {r.eliminated.avatar} {r.eliminated.name} ({r.eliminated.role})</p>}
-                      {r.mr_white_guess && <p className="text-xs text-[#6a5838]">Mr. White a dit : <strong className="text-[#c8b888]">"{r.mr_white_guess}"</strong> {r.mr_white_correct ? "✓" : "✗"}</p>}
+                {room.round_history.map((r: any, i: number) => (
+                  <div key={i} className="p-4 rounded-sm" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <p className="text-xs text-[#c8a030] mb-3 font-medium">Manche {r.round}</p>
+
+                    {/* Civils */}
+                    <div className="mb-2">
+                      <span className="text-xs text-[#6abf6a]">👤 Civils</span>
+                      <span className="text-xs text-[#c8b888] ml-2 font-medium">"{r.word_civilian}"</span>
+                      <div className="flex flex-wrap gap-1 mt-1 ml-4">
+                        {players.filter(p => r.roles?.[p.id] === "civilian").map(p => (
+                          <span key={p.id} className="text-xs text-[#6a5838]">{p.avatar} {p.name}</span>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+
+                    {/* Undercover */}
+                    <div className="mb-2">
+                      <span className="text-xs text-[#c87050]">🕵️ Undercover</span>
+                      <span className="text-xs text-[#c8b888] ml-2 font-medium">"{r.word_undercover}"</span>
+                      <div className="flex flex-wrap gap-1 mt-1 ml-4">
+                        {players.filter(p => r.roles?.[p.id] === "undercover").map(p => (
+                          <span key={p.id} className="text-xs text-[#6a5838]">{p.avatar} {p.name}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Mr. White */}
+                    {players.some(p => r.roles?.[p.id] === "mrwhite") && (
+                      <div className="mb-2">
+                        <span className="text-xs text-[#c8a030]">👻 Mr. White</span>
+                        <div className="flex flex-wrap gap-1 mt-1 ml-4">
+                          {players.filter(p => r.roles?.[p.id] === "mrwhite").map(p => (
+                            <span key={p.id} className="text-xs text-[#6a5838]">{p.avatar} {p.name}</span>
+                          ))}
+                        </div>
+                        {r.mr_white_guess && (
+                          <p className="text-xs text-[#6a5838] ml-4 mt-1">
+                            A dit : <strong className="text-[#c8b888]">"{r.mr_white_guess}"</strong> {r.mr_white_correct ? "✓" : "✗"}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Éliminé */}
+                    {r.eliminated && (
+                      <p className="text-xs text-[#4a3820] mt-2">
+                        Éliminé : {r.eliminated.avatar} <strong className="text-[#c8b888]">{r.eliminated.name}</strong>
+                      </p>
+                    )}
+                  </div>
+                ))}
                 </div>
               </div>
             )}
@@ -462,26 +552,44 @@ export default function GameRoom() {
         )}
 
         {/* RÉSULTAT DE MANCHE */}
-        {(isRoundResult || isWaitingNextRound) && !isGameOver && (
+        {(isRoundResult || isWaitingNextRound || room?.status === "game_over_pending") && !isGameOver && (
           <div>
             <div className="text-center mb-8">
-              <div className="text-4xl mb-3">{eliminatedPlayer?.role === "undercover" ? "🎉" : eliminatedPlayer?.role === "mrwhite" ? "👻" : "😢"}</div>
-              <h2 className="text-xl text-[#f0e0b0] mb-2" style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>
+              <div className="text-4xl mb-3">{eliminatedPlayer?.role === "undercover" ? "🎉" : eliminatedPlayer?.role === "mrwhite" ? "👻" : "🗳️"}</div>              <h2 className="text-xl text-[#f0e0b0] mb-2" style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>
                 Fin de manche {room?.current_round}
               </h2>
-              {eliminatedPlayer && (
-                <p className="text-sm text-[#6a5838] mb-1">
-                  {eliminatedPlayer.avatar} <strong className="text-[#c8b888]">{eliminatedPlayer.name}</strong> était {eliminatedPlayer.role === "undercover" ? "l'Undercover 🕵️" : eliminatedPlayer.role === "mrwhite" ? "le Mr. White 👻" : "un Civil 👤"}
-                </p>
-              )}
-              <p className="text-xs text-[#4a3820] mt-2">
-                Civils : <strong className="text-[#c8b888]">{room?.word_civilian}</strong> · Undercover : <strong className="text-[#c8b888]">{room?.word_undercover}</strong>
-              </p>
+              {(() => {
+                const lastRound = room?.round_history?.[room.round_history.length - 1];
+                return lastRound ? (
+                  <p className="text-xs text-[#4a3820] mt-2">
+                    Civils : <strong className="text-[#c8b888]">{lastRound.word_civilian}</strong> · Undercover : <strong className="text-[#c8b888]">{lastRound.word_undercover}</strong>
+                  </p>
+                ) : null;
+              })()}
               {room?.mr_white_guess && (
                 <p className="text-xs text-[#6a5838] mt-1">
                   Mr. White a dit : <strong className="text-[#c8b888]">"{room.mr_white_guess}"</strong>
                 </p>
               )}
+              {(() => {
+                const lastRound = room?.round_history?.[room.round_history.length - 1];
+                if (!lastRound) return null;
+                return (
+                  <div className="mt-4 flex flex-col gap-2">
+                    <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-2">Rôles de la manche</p>
+                    {players.map(p => (
+                      <div key={p.id} className="flex items-center gap-3 px-4 py-2 rounded-sm"
+                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <span className="text-lg">{p.avatar}</span>
+                        <span className="text-sm text-[#c8b888] flex-1">{p.name}</span>
+                        <span className="text-xs" style={{ color: lastRound?.roles?.[p.id] === "undercover" ? "#c87050" : lastRound?.roles?.[p.id] === "mrwhite" ? "#c8a030" : "#6abf6a" }}>
+                          {lastRound?.roles?.[p.id] === "undercover" ? `🕵️ Undercover · ${lastRound.word_undercover}` : lastRound?.roles?.[p.id] === "mrwhite" ? "👻 Mr. White" : `👤 Civil · ${lastRound.word_civilian}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Scores */}
@@ -503,7 +611,7 @@ export default function GameRoom() {
             {isHost && (
               <button onClick={startNextRound}
                 className="w-full py-4 rounded-sm text-sm font-medium" style={{ background: "#c8a030", color: "#1a1208" }}>
-                Manche suivante →
+                {room?.status === "game_over_pending" ? "Voir les résultats 🏆" : "Manche suivante →"}
               </button>
             )}
             {!isHost && <p className="text-center text-xs text-[#4a3820] animate-pulse">En attente de l'hôte...</p>}
@@ -512,19 +620,44 @@ export default function GameRoom() {
 
         {/* ÉGALITÉ */}
         {isPlaying && isTie && !isGameOver && (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-4">🤝</div>
-            <h2 className="text-xl text-[#f0e0b0] mb-2" style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>Égalité !</h2>
-            <p className="text-sm text-[#6a5838] mb-8">Personne n'est éliminé — les imposteurs gagnent cette manche.</p>
+          <div>
+            <div className="text-center mb-8">
+              <div className="text-4xl mb-4">🤝</div>
+              <h2 className="text-xl text-[#f0e0b0] mb-2" style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>Égalité !</h2>
+              <p className="text-sm text-[#6a5838] mb-4">Personne n'est éliminé</p>
+              {(() => {
+                const lastRound = room?.round_history?.[room.round_history.length - 1];
+                if (!lastRound) return null;
+                return (
+                  <>
+                    <p className="text-xs text-[#4a3820] mb-4">
+                      Civils : <strong className="text-[#c8b888]">{lastRound.word_civilian}</strong> · Undercover : <strong className="text-[#c8b888]">{lastRound.word_undercover}</strong>
+                    </p>
+                    <div className="flex flex-col gap-2 mb-6">
+                      {players.map(p => (
+                        <div key={p.id} className="flex items-center gap-3 px-4 py-2 rounded-sm"
+                          style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                          <span className="text-lg">{p.avatar}</span>
+                          <span className="text-sm text-[#c8b888] flex-1">{p.name}</span>
+                          <span className="text-xs" style={{ color: lastRound?.roles?.[p.id] === "undercover" ? "#c87050" : lastRound?.roles?.[p.id] === "mrwhite" ? "#c8a030" : "#6abf6a" }}>
+                            {lastRound?.roles?.[p.id] === "undercover" ? `🕵️ Undercover · ${lastRound.word_undercover}` : lastRound?.roles?.[p.id] === "mrwhite" ? "👻 Mr. White" : `👤 Civil · ${lastRound.word_civilian}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
             {isHost && (
               <button onClick={async () => {
                 await supabase.functions.invoke("end-round", { body: { roomId: code, mrWhiteGuess: "" } });
               }}
-                className="px-8 py-3 rounded-sm text-sm font-medium" style={{ background: "#c8a030", color: "#1a1208" }}>
+                className="w-full py-3 rounded-sm text-sm font-medium" style={{ background: "#c8a030", color: "#1a1208" }}>
                 Continuer
               </button>
             )}
-            {!isHost && <p className="text-xs text-[#4a3820] animate-pulse">En attente de l'hôte...</p>}
+            {!isHost && <p className="text-xs text-[#4a3820] animate-pulse text-center">En attente de l'hôte...</p>}
           </div>
         )}
 
@@ -660,7 +793,7 @@ export default function GameRoom() {
               </div>
             </div>
 
-            <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-3">🗳️ Vote — Qui est l'imposteur ?</p>
+            <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-3">🕵️ Qui est l'Undercover ?</p>
             <div className="flex flex-col gap-2 mb-6">
               {alivePlayers.map(p => {
                 const votingAgainstMe = alivePlayers.filter(other => other.voted_for === p.id);
@@ -679,9 +812,7 @@ export default function GameRoom() {
                     {p.id === myPlayer?.id && <span className="text-xs text-[#4a3820]">toi</span>}
                     {votingAgainstMe.length > 0 && (
                       <div className="flex gap-1">
-                        {votingAgainstMe.map(v => (
-                          <span key={v.id} className="text-sm">{v.avatar}</span>
-                        ))}
+                        {votingAgainstMe.map(v => <span key={v.id} className="text-sm">{v.avatar}</span>)}
                       </div>
                     )}
                     {p.vote_locked && <span className="text-xs text-[#6abf6a]">✓</span>}
@@ -690,13 +821,47 @@ export default function GameRoom() {
               })}
             </div>
 
-            {error && <p className="text-xs text-[#c87050] mb-4 text-center">{error}</p>}
+            {mrWhiteInGame && (
+              <>
+                <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-3">👻 Qui est le Mr. White ?</p>
+                <div className="flex flex-col gap-2 mb-6">
+                  {alivePlayers.map(p => {
+                    const votingMrWhite = alivePlayers.filter(other => other.voted_for_mrwhite === p.id);
+                    return (
+                      <div key={p.id}
+                        onClick={() => !myPlayer?.vote_locked && p.id !== myPlayer?.id && handleVoteMrWhite(p.id)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-sm transition-all"
+                        style={{
+                          background: votedForMrWhite === p.id ? "rgba(200,160,48,0.1)" : "rgba(255,255,255,0.02)",
+                          border: votedForMrWhite === p.id ? "1px solid rgba(200,160,48,0.3)" : "1px solid rgba(255,255,255,0.05)",
+                          cursor: p.id !== myPlayer?.id && !myPlayer?.vote_locked ? "pointer" : "default",
+                          opacity: p.id === myPlayer?.id ? 0.5 : 1,
+                        }}>
+                        <span className="text-xl">{p.avatar}</span>
+                        <span className="text-sm text-[#c8b888] flex-1">{p.name}</span>
+                        {p.id === myPlayer?.id && <span className="text-xs text-[#4a3820]">toi</span>}
+                        {votingMrWhite.length > 0 && (
+                          <div className="flex gap-1">
+                            {votingMrWhite.map(v => <span key={v.id} className="text-sm">{v.avatar}</span>)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             {myPlayer && !myPlayer.vote_locked && (
-              <button onClick={lockVote} disabled={!votedFor}
+              <button onClick={lockVote}
+                disabled={!votedFor || (mrWhiteInGame && !votedForMrWhite)}
                 className="w-full py-4 rounded-sm text-sm font-medium tracking-wide"
-                style={{ background: votedFor ? "#c8a030" : "#2a1e0e", color: votedFor ? "#1a1208" : "#4a3820", cursor: votedFor ? "pointer" : "not-allowed" }}>
-                ✓ Valider mon vote
+                style={{
+                  background: (votedFor && (!mrWhiteInGame || votedForMrWhite)) ? "#c8a030" : "#2a1e0e",
+                  color: (votedFor && (!mrWhiteInGame || votedForMrWhite)) ? "#1a1208" : "#4a3820",
+                  cursor: (votedFor && (!mrWhiteInGame || votedForMrWhite)) ? "pointer" : "not-allowed",
+                }}>
+                ✓ Valider mes votes
               </button>
             )}
             {myPlayer?.vote_locked && (

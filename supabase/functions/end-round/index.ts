@@ -40,11 +40,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    const undercovers = players.filter(p => p.role === "undercover");
-    const mrWhitePlayer = players.find(p => p.role === "mrwhite");
-    const civilians = players.filter(p => p.role === "civilian");
-
-    const eliminatedRole = eliminatedPlayer?.role ?? null;
+    const cachedRoles = room.cached_roles ?? {};
+    const undercovers = players.filter(p => cachedRoles[p.id] === "undercover");
+    const mrWhitePlayer = players.find(p => cachedRoles[p.id] === "mrwhite");
+    const civilians = players.filter(p => cachedRoles[p.id] === "civilian");
+    const eliminatedRole = eliminatedPlayer ? (cachedRoles[eliminatedPlayer.id] ?? null) : null;
     const undercoverEliminated = eliminatedRole === "undercover";
     const mrWhiteEliminated = eliminatedRole === "mrwhite";
 
@@ -94,44 +94,58 @@ Deno.serve(async (req) => {
     const isLastRound = currentRound >= room.total_rounds;
 
     // Historique
-    const roundData = {
-      round: currentRound,
-      word_civilian: room.word_civilian,
-      word_undercover: room.word_undercover,
-      eliminated: eliminatedPlayer ? { name: eliminatedPlayer.name, avatar: eliminatedPlayer.avatar, role: eliminatedPlayer.role } : null,
-      mr_white_guess: mrWhiteGuess || null,
-      mr_white_correct: mrWhiteGuessedCorrect,
-      points: pointsToAdd,
-    };
+  const roundData = {
+    round: currentRound,
+    word_civilian: room.word_civilian,
+    word_undercover: room.word_undercover,
+    eliminated: eliminatedPlayer ? { name: eliminatedPlayer.name, avatar: eliminatedPlayer.avatar, role: eliminatedPlayer.role } : null,
+    mr_white_guess: mrWhiteGuess || null,
+    mr_white_correct: mrWhiteGuessedCorrect,
+    points: pointsToAdd,
+    roles: room.cached_roles ?? {},
+  };
     const history = [...(room.round_history || []), roundData];
 
-    if (isLastRound) {
-      await supabase.from("rooms").update({
-        status: "game_over",
-        phase: "game_over",
-        round_history: history,
-        mr_white_guess: mrWhiteGuess || null,
-      }).eq("id", roomId);
-    } else {
-      await supabase.from("players").update({
-        role: null, word: null, is_alive: true,
-        words_said: [], word_count: 0,
-        voted_for: null, vote_locked: false,
-      }).eq("room_id", roomId);
+  if (isLastRound) {
+    await supabase.from("rooms").update({
+      status: "game_over_pending",
+      phase: "round_result",
+      current_round: currentRound,
+      round_history: history,
+      word_civilian: null,
+      word_undercover: null,
+      current_player_index: 0,
+      turn_started_at: null,
+      last_eliminated_id: room.last_eliminated_id,
+      mr_white_guess: mrWhiteGuess || null,
+    }).eq("id", roomId);
 
-      await supabase.from("rooms").update({
-        status: "waiting_next_round",
-        phase: "round_result",
-        current_round: currentRound,
-        round_history: history,
-        word_civilian: null,
-        word_undercover: null,
-        current_player_index: 0,
-        turn_started_at: null,
-        last_eliminated_id: null,
-        mr_white_guess: mrWhiteGuess || null,
-      }).eq("id", roomId);
-    }
+    await supabase.from("players").update({
+      role: null, word: null, is_alive: true,
+      words_said: [], word_count: 0,
+      voted_for: null, vote_locked: false,
+    }).eq("room_id", roomId);
+
+  } else {
+    await supabase.from("rooms").update({
+      status: "waiting_next_round",
+      phase: "round_result",
+      current_round: currentRound,
+      round_history: history,
+      word_civilian: null,
+      word_undercover: null,
+      current_player_index: 0,
+      turn_started_at: null,
+      last_eliminated_id: null,
+      mr_white_guess: mrWhiteGuess || null,
+    }).eq("id", roomId);
+
+    await supabase.from("players").update({
+      role: null, word: null, is_alive: true,
+      words_said: [], word_count: 0,
+      voted_for: null, vote_locked: false,
+    }).eq("room_id", roomId);
+  }
 
     return Response.json({ success: true, points: pointsToAdd, mrWhiteGuessedCorrect, roundData }, {
       headers: { "Access-Control-Allow-Origin": "*" },

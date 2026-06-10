@@ -71,19 +71,35 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Reset votes
-        await supabase.from("players")
-          .update({ voted_for: null, vote_locked: false })
-          .eq("room_id", roomId);
+          if (isTie || !eliminatedId) {
+            // Sauvegarder les rôles
+            const rolesSnapshot: Record<string, string> = {};
+            for (const p of alivePlayers) {
+              rolesSnapshot[p.id] = p.role ?? "civilian";
+            }
 
-        if (isTie || !eliminatedId) {
-          // Égalité — appeler end-round sans élimination
-          await supabase.from("rooms").update({
-            phase: "tie",
-            last_eliminated_id: null,
-          }).eq("id", roomId);
-        } else {
-// Pas d'élimination définitive — on note juste qui a été le plus voté
+            // Reset votes
+            await supabase.from("players")
+              .update({ voted_for: null, vote_locked: false })
+              .eq("room_id", roomId);
+
+            // Vérifier si un Mr. White est dans la partie
+            const mrWhiteInTie = alivePlayers.find(p => p.role === "mrwhite");
+
+            if (mrWhiteInTie) {
+              await supabase.from("rooms").update({
+                phase: "mrwhite_guess",
+                last_eliminated_id: null,
+                cached_roles: rolesSnapshot,
+              }).eq("id", roomId);
+            } else {
+              await supabase.from("rooms").update({
+                phase: "tie",
+                last_eliminated_id: null,
+                cached_roles: rolesSnapshot,
+              }).eq("id", roomId);
+            }
+          } else {
 
           // Récupérer le joueur éliminé pour vérifier son rôle
           const { data: eliminatedPlayer } = await supabase
@@ -94,27 +110,31 @@ Deno.serve(async (req) => {
             last_eliminated_id: eliminatedId,
           }).eq("id", roomId);
 
-          // Si Mr. White est éliminé → phase mrwhite_guess
-          if (eliminatedPlayer?.role === "mrwhite") {
+            // Vérifier si un Mr. White est dans la partie
+            const { data: allPlayers } = await supabase.from("players").select("*").eq("room_id", roomId);
+            const mrWhiteExists = allPlayers?.find(p => p.role === "mrwhite");
+
+          // Sauvegarder les rôles avant reset
+          const rolesSnapshot: Record<string, string> = {};
+          for (const p of allPlayers!) {
+            rolesSnapshot[p.id] = p.role ?? "civilian";
+          }
+
+          if (mrWhiteExists) {
             await supabase.from("rooms").update({
               phase: "mrwhite_guess",
+              cached_roles: rolesSnapshot,
             }).eq("id", roomId);
           } else {
-            // Appeler end-round directement
-            const room = await supabase.from("rooms").select("*").eq("id", roomId).single();
-            const roomData = room.data;
-
-            // Appel interne à end-round
-            const endRoundUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/end-round`;
-            await fetch(endRoundUrl, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-              },
-              body: JSON.stringify({ roomId, mrWhiteGuess: "" }),
-            });
+            await supabase.from("rooms").update({
+              phase: "round_result_pending",
+              cached_roles: rolesSnapshot,
+            }).eq("id", roomId);
           }
+          // Reset votes APRÈS end-round
+          await supabase.from("players")
+            .update({ voted_for: null, vote_locked: false })
+            .eq("room_id", roomId);
         }
       }
     } else {
