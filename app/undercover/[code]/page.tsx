@@ -144,7 +144,7 @@ export default function GameRoom() {
       //   .select().single();
       // if (newPlayer) setMyPlayer(newPlayer);
 
-    // Vérifier si on a déjà un ID joueur en sessionStorage
+    // Vérifier si on a déjà un ID joueur en sessionStorage, passer en localStorage si besoin pour persister entre onglets
     const storageKey = `player_${code}`;
     const existingPlayerId = sessionStorage.getItem(storageKey);
 
@@ -185,7 +185,12 @@ export default function GameRoom() {
     const channel = supabase.channel(`room-${code}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${code}` }, fetchPlayers)
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${code}` }, fetchRoom)
-      .subscribe();
+      .on("broadcast", { event: "emoji" }, ({ payload }) => {
+    const id = emojiCounter.current++;
+    setFloatingEmojis(prev => [...prev, { id, emoji: payload.emoji, x: payload.x }]);
+    setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 2500);
+  })
+  .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [code, fetchPlayers, fetchRoom]);
 
@@ -370,11 +375,18 @@ export default function GameRoom() {
     await handleEndRound(mrWhiteGuess);
   }
 
-  function sendEmoji(emoji: string) {
-    const id = emojiCounter.current++;
+  async function sendEmoji(emoji: string) {
     const x = Math.random() * 80 + 10;
+    // Afficher localement immédiatement
+    const id = emojiCounter.current++;
     setFloatingEmojis(prev => [...prev, { id, emoji, x }]);
     setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 2500);
+    // Envoyer aux autres
+    await supabase.channel(`room-${code}`).send({
+      type: "broadcast",
+      event: "emoji",
+      payload: { emoji, x, from: playerName },
+    });
   }
 
   if (loading) return (
