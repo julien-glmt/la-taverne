@@ -157,7 +157,7 @@ export default function GameRoom() {
       } else {
         // Joueur introuvable, en créer un nouveau
         const { data: newPlayer } = await supabase.from("players")
-          .insert({ room_id: code, name: playerName, avatar: playerAvatar, is_ready: isHost, score: 0 })
+          .insert({ room_id: code, name: playerName, avatar: playerAvatar, is_ready: true, score: 0 })
           .select().single();
         if (newPlayer) {
           setMyPlayer(newPlayer);
@@ -166,7 +166,7 @@ export default function GameRoom() {
       }
     } else {
       const { data: newPlayer } = await supabase.from("players")
-        .insert({ room_id: code, name: playerName, avatar: playerAvatar, is_ready: isHost, score: 0 })
+        .insert({ room_id: code, name: playerName, avatar: playerAvatar, is_ready: true, score: 0 })
         .select().single();
       if (newPlayer) {
         setMyPlayer(newPlayer);
@@ -249,7 +249,7 @@ export default function GameRoom() {
   }, [room?.phase, myPlayer?.role]);
 
   useEffect(() => {
-    if (room?.phase === "round_result_pending" && isHost) {
+    if (room?.phase === "round_result_pending" && isHost && !mrWhiteSubmitted) {
       supabase.functions.invoke("end-round", {
         body: { roomId: code, mrWhiteGuess: "" },
       });
@@ -418,6 +418,8 @@ export default function GameRoom() {
     setVotedFor(null);
     setMrWhiteGuess("");
     setMrWhiteSubmitted(false);
+    setVotedFor(null);
+    setVotedForMrWhite(null);
 
     await supabase.from("players").update({
       words_said: [], word_count: 0,
@@ -516,7 +518,7 @@ export default function GameRoom() {
   const isTie = room?.phase === "tie";
   const isRoundResult = room?.phase === "round_result";
   const isMrWhiteGuess = room?.phase === "mrwhite_guess";
-  const isGameOver = ["civilians_win", "undercover_wins", "game_over"].includes(room?.status ?? "");  const allReady = players.length >= 3 && players.every(p => p.is_ready);
+  const isGameOver = ["civilians_win", "undercover_wins", "game_over"].includes(room?.status ?? "");  const allReady = players.length >= 3;
   const maxUndercovers = players.length <= 4 ? 1 : 2;
 
   const eliminatedPlayer = players.find(p => p.id === room?.last_eliminated_id);
@@ -1113,7 +1115,7 @@ export default function GameRoom() {
 
             {error && <p className="text-xs text-[#c87050] mb-4 text-center">{error}</p>}
 
-            {myPlayer && (
+            {/* {myPlayer && (
               <button onClick={toggleReady}
                 className="w-full py-3 rounded-sm text-sm font-medium tracking-wide mb-3 transition-all"
                 style={{
@@ -1123,7 +1125,7 @@ export default function GameRoom() {
                 }}>
                 {myPlayer.is_ready ? "✓ Je suis prêt·e — Annuler" : "Je suis prêt·e"}
               </button>
-            )}
+            )} */}
 
             {isHost && (
               <button onClick={startGame}
