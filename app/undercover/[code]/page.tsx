@@ -738,7 +738,7 @@ export default function GameRoom() {
 
             {isHost && (
               <button onClick={async () => {
-                await supabase.from("players").update({ role: null, word: null, is_alive: true, is_ready: false, words_said: [], word_count: 0, voted_for: null, vote_locked: false, score: 0 }).eq("room_id", code);
+                await supabase.from("players").update({ role: null, word: null, is_alive: true, is_ready: true, words_said: [], word_count: 0, voted_for: null, vote_locked: false, score: 0 }).eq("room_id", code);
                 await supabase.from("rooms").update({ status: "waiting", phase: "waiting", word_civilian: null, word_undercover: null, current_round: 0, current_player_index: 0, turn_started_at: null, round_history: [], last_eliminated_id: null }).eq("id", code);
               }}
                 className="w-full py-4 rounded-sm text-sm font-medium" style={{ background: "#c8a030", color: "#1a1208" }}>

@@ -8,7 +8,7 @@ const games = [
     name: "Undercover",
     emoji: "🕵️",
     description: "Trouve qui est l'imposteur! À moins que ce soit toi ?",
-    players: "3 – 10 joueurs",
+    players: "3 – 8 joueurs",
     duration: "15 – 30 min",
     available: true,
   },
