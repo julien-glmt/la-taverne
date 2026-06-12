@@ -29,6 +29,8 @@ Deno.serve(async (req) => {
     const { data: player } = await supabase
       .from("players").select("*").eq("id", playerId).single();
 
+
+
     if (player?.vote_locked) {
       return Response.json({ error: "Ton vote est déjà verrouillé" }, { status: 400 });
     }
@@ -78,6 +80,14 @@ Deno.serve(async (req) => {
               rolesSnapshot[p.id] = p.role ?? "civilian";
             }
 
+            const votesSnapshot: Record<string, number> = {};
+            for (const p of alivePlayers) {
+              const voteTarget = p.id === playerId ? player.voted_for : p.voted_for;
+              if (voteTarget) {
+                votesSnapshot[voteTarget] = (votesSnapshot[voteTarget] || 0) + 1;
+              }
+            }
+
             // Reset votes
             await supabase.from("players")
               .update({ voted_for: null, vote_locked: false })
@@ -120,15 +130,25 @@ Deno.serve(async (req) => {
             rolesSnapshot[p.id] = p.role ?? "civilian";
           }
 
+          const votesSnapshot: Record<string, number> = {};
+          for (const p of alivePlayers) {
+            const voteTarget = p.id === playerId ? player.voted_for : p.voted_for;
+            if (voteTarget) {
+              votesSnapshot[voteTarget] = (votesSnapshot[voteTarget] || 0) + 1;
+            }
+          }
+
           if (mrWhiteExists) {
             await supabase.from("rooms").update({
               phase: "mrwhite_guess",
               cached_roles: rolesSnapshot,
+              cached_votes: votesSnapshot,
             }).eq("id", roomId);
           } else {
             await supabase.from("rooms").update({
               phase: "round_result_pending",
               cached_roles: rolesSnapshot,
+              cached_votes: votesSnapshot,
             }).eq("id", roomId);
           }
           // Reset votes APRÈS end-round

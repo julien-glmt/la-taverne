@@ -248,6 +248,14 @@ export default function GameRoom() {
     return () => { if (mrWhiteTimerRef.current) clearInterval(mrWhiteTimerRef.current); };
   }, [room?.phase, myPlayer?.role]);
 
+  useEffect(() => {
+    if (room?.phase === "round_result_pending" && isHost) {
+      supabase.functions.invoke("end-round", {
+        body: { roomId: code, mrWhiteGuess: "" },
+      });
+    }
+  }, [room?.phase]);
+
   async function updateSettings(key: string, value: number | boolean) {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
@@ -277,6 +285,101 @@ export default function GameRoom() {
       { civilian: "Été", undercover: "Printemps" },
       { civilian: "Montagne", undercover: "Volcan" },
       { civilian: "Château", undercover: "Palais" },
+      { civilian: "Lion", undercover: "Tigre" },
+      { civilian: "Glace", undercover: "Sorbet" },
+      { civilian: "Tennis", undercover: "Badminton" },
+      { civilian: "Ski", undercover: "Snowboard" },
+      { civilian: "Médecin", undercover: "Chirurgien" },
+      { civilian: "Pompier", undercover: "Policier" },
+      { civilian: "Avocat", undercover: "Juge" },
+      { civilian: "Smartphone", undercover: "Tablette" },
+      { civilian: "Robot", undercover: "Androïde" },
+      { civilian: "Avion", undercover: "Hélicoptère" },
+      { civilian: "Métro", undercover: "Tramway" },
+      { civilian: "Espion", undercover: "Détective" },
+      { civilian: "Fantôme", undercover: "Vampire" },
+      { civilian: "Forêt", undercover: "Jungle" },
+      { civilian: "Pirate", undercover: "Viking" },
+      { civilian: "Taxi", undercover: "Uber" },
+      { civilian: "Crêpe", undercover: "Gaufre" },
+      { civilian: "Boxe", undercover: "Karaté" },
+      { civilian: "Magie", undercover: "Illusion" },
+      { civilian: "Mensonge", undercover: "Secret" },
+      { civilian: "Hacker", undercover: "Pirate informatique" },
+      { civilian: "Mème", undercover: "Gif" },
+      { civilian: "Bug", undercover: "Glitch" },
+      { civilian: "Trahison", undercover: "Abandon" },
+      { civilian: "Vengeance", undercover: "Représailles" },
+      { civilian: "Requin", undercover: "Dauphin" },
+      { civilian: "Astronaute", undercover: "Pilote" },
+      { civilian: "Boulangerie", undercover: "Pâtisserie" },
+      { civilian: "Grotte", undercover: "Mine" },
+      { civilian: "Acteur", undercover: "Chanteur" },
+      { civilian: "Sauna", undercover: "Hammam" },
+      { civilian: "Camping", undercover: "Glamping" },
+      { civilian: "Surf", undercover: "Wakeboard" },
+      { civilian: "Tatouage", undercover: "Piercing" },
+      { civilian: "Anniversaire", undercover: "Mariage" },
+      { civilian: "Jumeau", undercover: "Clone" },
+      { civilian: "Cimetière", undercover: "Mausolée" },
+      { civilian: "Duel", undercover: "Tournoi" },
+      { civilian: "Épée", undercover: "Lance" },
+      { civilian: "Espionnage", undercover: "Sabotage" },
+      { civilian: "Cambriolage", undercover: "Braquage" },
+      { civilian: "Alibi", undercover: "Fausse piste" },
+      { civilian: "Filature", undercover: "Surveillance" },
+      { civilian: "Fugitif", undercover: "Évadé" },
+      { civilian: "Chantage", undercover: "Extorsion" },
+      { civilian: "Meurtre", undercover: "Assassinat" },
+      { civilian: "Streaming", undercover: "Téléchargement" },
+      { civilian: "Influenceur", undercover: "Blogueur" },
+      { civilian: "Troll", undercover: "Hater" },
+      { civilian: "Forum", undercover: "Chat" },
+      { civilian: "Mot de passe", undercover: "Code PIN" },
+      { civilian: "Serveur", undercover: "Cloud" },
+      { civilian: "Burn-out", undercover: "Dépression" },
+      { civilian: "Thérapie", undercover: "Coaching" },
+      { civilian: "Insomnie", undercover: "Somnambulisme" },
+      { civilian: "Jalousie", undercover: "Envie" },
+      { civilian: "Orgueil", undercover: "Arrogance" },
+      { civilian: "Empathie", undercover: "Compassion" },
+      { civilian: "Manipulation", undercover: "Persuasion" },
+      { civilian: "Séduction", undercover: "Charme" },
+      { civilian: "Pardon", undercover: "Réconciliation" },
+      { civilian: "Héritage", undercover: "Testament" },
+      { civilian: "Procès", undercover: "Audience" },
+      { civilian: "Rome", undercover: "Athènes" },
+      { civilian: "Tokyo", undercover: "Pékin" },
+      { civilian: "New York", undercover: "Los Angeles" },
+      { civilian: "Désert", undercover: "Savane" },
+      { civilian: "Récif", undercover: "Atoll" },
+      { civilian: "Oasis", undercover: "Source" },
+      { civilian: "Foudre", undercover: "Tonnerre" },
+      { civilian: "Mousson", undercover: "Cyclone" },
+      { civilian: "Brouillard", undercover: "Brume" },
+      { civilian: "Comédie", undercover: "Sketch" },
+      { civilian: "Documentaire", undercover: "Reportage" },
+      { civilian: "Série", undercover: "Feuilleton" },
+      { civilian: "Réalisateur", undercover: "Producteur" },
+      { civilian: "Sel", undercover: "Sucre" },
+      { civilian: "Judo", undercover: "Lutte" },
+      { civilian: "Marathon", undercover: "Triathlon" },
+      { civilian: "Golf", undercover: "Pétanque" },
+      { civilian: "Médaille", undercover: "Trophée" },
+      { civilian: "Arbitre", undercover: "Juge de ligne" },
+      { civilian: "Dopage", undercover: "Triche" },
+      { civilian: "Lapin", undercover: "Lièvre" },
+      { civilian: "Crocodile", undercover: "Alligator" },
+      { civilian: "Aigle", undercover: "Faucon" },
+      { civilian: "Sorcière", undercover: "Fée" },
+      { civilian: "Démon", undercover: "Ange" },
+      { civilian: "Paradis", undercover: "Enfer" },
+      { civilian: "Superstition", undercover: "Croyance" },
+      { civilian: "Horoscope", undercover: "Tarot" },
+      { civilian: "Trésor", undercover: "Butin" },
+      { civilian: "Naufrage", undercover: "Crash" },
+      { civilian: "Phare", undercover: "Tour de contrôle" },
+      { civilian: "Marée", undercover: "Vague" },
     ];
 
     const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
@@ -736,7 +839,7 @@ export default function GameRoom() {
         )}
 
         {/* MON MOT */}
-        {isPlaying && myPlayer?.word && !isGameOver && isPlayingPhase && (
+        {isPlaying && myPlayer?.word && !isGameOver && (isPlayingPhase || isVotingPhase) && (
           <div className="mb-6">
             <p className="text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-2">Ton mot secret</p>
             <div className="p-4 rounded-sm text-center cursor-pointer select-none"

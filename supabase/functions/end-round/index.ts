@@ -30,13 +30,14 @@ Deno.serve(async (req) => {
 
     const eliminatedPlayer = players.find(p => p.id === room.last_eliminated_id);
 
-    // Trouver le suspect principal
+    // Trouver le suspect principal depuis les votes cachés
+    const cachedVotes = room.cached_votes ?? {};
     let maxVotes = 0;
     let mainSuspectId: string | null = room.last_eliminated_id;
-    for (const p of players) {
-      if (p.voted_for) {
-        const count = players.filter(o => o.voted_for === p.id).length;
-        if (count > maxVotes) { maxVotes = count; mainSuspectId = p.id; }
+    for (const [id, count] of Object.entries(cachedVotes)) {
+      if ((count as number) > maxVotes) {
+        maxVotes = count as number;
+        mainSuspectId = id;
       }
     }
 
@@ -53,7 +54,11 @@ Deno.serve(async (req) => {
     if (mrWhiteEliminated && mrWhiteGuess && room.word_civilian) {
       const guess = mrWhiteGuess.trim().toLowerCase();
       const word = room.word_civilian.trim().toLowerCase();
-      mrWhiteGuessedCorrect = guess === word || word.includes(guess) || guess.includes(word);
+      const normalize = (s: string) => s.trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      mrWhiteGuessedCorrect = normalize(guess) === normalize(word) || 
+        normalize(word).includes(normalize(guess)) || 
+        normalize(guess).includes(normalize(word));
     }
 
     // Calcul des points
@@ -61,14 +66,14 @@ Deno.serve(async (req) => {
     for (const p of players) pointsToAdd[p.id] = 0;
 
     for (const civil of civilians) {
-      if (undercoverEliminated) pointsToAdd[civil.id] = (pointsToAdd[civil.id] || 0) + 100;
+      if (undercoverEliminated) pointsToAdd[civil.id] = (pointsToAdd[civil.id] || 0) + 150;
       if (mrWhiteEliminated) pointsToAdd[civil.id] = (pointsToAdd[civil.id] || 0) + 100;
     }
 
     if (undercovers.length === 1) {
       const uc = undercovers[0];
       if (mainSuspectId !== uc.id) pointsToAdd[uc.id] = (pointsToAdd[uc.id] || 0) + 200;
-      if (mrWhiteEliminated) pointsToAdd[uc.id] = (pointsToAdd[uc.id] || 0) + 100;
+      if (mrWhiteEliminated) pointsToAdd[uc.id] = (pointsToAdd[uc.id] || 0) + 150;
     } else if (undercovers.length === 2) {
       for (const uc of undercovers) {
         if (mainSuspectId === uc.id) continue;
@@ -79,8 +84,8 @@ Deno.serve(async (req) => {
 
     if (mrWhitePlayer) {
       if (mainSuspectId !== mrWhitePlayer.id) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 200;
-      if (mrWhiteGuessedCorrect) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 100;
-      if (undercoverEliminated) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 100;
+      if (mrWhiteGuessedCorrect) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 150;
+      if (undercoverEliminated) pointsToAdd[mrWhitePlayer.id] = (pointsToAdd[mrWhitePlayer.id] || 0) + 50;
     }
 
     // Mettre à jour les scores
