@@ -256,6 +256,23 @@ export default function GameRoom() {
     }
   }, [room?.phase]);
 
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (myPlayer && room?.status === "waiting") {
+        await supabase.from("players").delete().eq("id", myPlayer.id);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Aussi supprimer si le composant se démonte (navigation)
+      if (myPlayer && room?.status === "waiting") {
+        supabase.from("players").delete().eq("id", myPlayer.id);
+      }
+    };
+  }, [myPlayer?.id, room?.status]);
+
   async function updateSettings(key: string, value: number | boolean) {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
