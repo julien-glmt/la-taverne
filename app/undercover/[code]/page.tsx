@@ -79,6 +79,7 @@ export default function GameRoom() {
   const [error, setError] = useState("");
   const [votedFor, setVotedFor] = useState<string | null>(null);
   const [votedForMrWhite, setVotedForMrWhite] = useState<string | null>(null);
+  const [wasKicked, setWasKicked] = useState(false);
   const [wordInput, setWordInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; emoji: string; x: number }[]>([]);
@@ -183,7 +184,9 @@ export default function GameRoom() {
 
   useEffect(() => {
     const channel = supabase.channel(`room-${code}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${code}` }, fetchPlayers)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "players", filter: `room_id=eq.${code}` }, fetchPlayers)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "players", filter: `room_id=eq.${code}` }, fetchPlayers)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "players" }, fetchPlayers)
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${code}` }, fetchRoom)
       .on("broadcast", { event: "emoji" }, ({ payload }) => {
     const id = emojiCounter.current++;
@@ -197,7 +200,14 @@ export default function GameRoom() {
   useEffect(() => {
     if (myPlayer && players.length > 0) {
       const updated = players.find(p => p.id === myPlayer.id);
-      if (updated) setMyPlayer(updated);
+      if (updated) {
+        setMyPlayer(updated);
+      } else if (room?.status === "waiting") {
+        const storageKey = `player_${code}_${playerName}_${playerAvatar}`;
+        localStorage.removeItem(storageKey);
+        setWasKicked(true);
+        setTimeout(() => router.push("/undercover"), 3000);
+      }
     }
   }, [players, myPlayer]);
 
@@ -547,6 +557,19 @@ export default function GameRoom() {
 
   return (
     <main className="min-h-screen bg-[#1a1208] text-[#e8dcc8] font-sans relative overflow-hidden">
+      {wasKicked && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 px-6">
+          <div className="w-full max-w-sm p-6 rounded-sm text-center"
+            style={{ background: "#1a1208", border: "1px solid rgba(200,80,40,0.4)" }}>
+            <div className="text-4xl mb-4">🚪</div>
+            <h2 className="text-xl text-[#f0e0b0] mb-2" style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>
+              Tu as été exclu·e
+            </h2>
+            <p className="text-sm text-[#6a5838]">L'hôte t'a retiré de la salle.</p>
+            <p className="text-xs text-[#4a3820] mt-3">Redirection dans 3 secondes...</p>
+          </div>
+        </div>
+      )}
 
       {floatingEmojis.map(e => (
         <div key={e.id} className="fixed pointer-events-none z-50 text-3xl"
@@ -566,7 +589,12 @@ export default function GameRoom() {
 
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <a href="/undercover" className="text-xs text-[#4a3820] hover:text-[#c8a030] tracking-widest uppercase transition-colors">← Quitter</a>
+          <button onClick={async () => {
+            if (myPlayer && room?.status === "waiting") {
+              await supabase.from("players").delete().eq("id", myPlayer.id);
+            }
+            router.push("/undercover");
+          }} className="text-xs text-[#4a3820] hover:text-[#c8a030] tracking-widest uppercase transition-colors">← Quitter</button>
           <div className="text-center">
             <p className="text-xs text-[#4a3820] tracking-[0.3em] uppercase mb-1">Code salle</p>
             <p className="text-xl font-mono text-[#c8a030] tracking-[0.4em]">{code}</p>
