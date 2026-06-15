@@ -9,16 +9,14 @@ const games = [
     emoji: "🕵️",
     description: "Trouve qui est l'imposteur! À moins que ce soit toi ?",
     players: "3 – 8 joueurs",
-    duration: "15 – 30 min",
     available: true,
   },
   {
     id: "blackjack",
     name: "Blackjack",
     emoji: "🃏",
-    description: "...",
+    description: "Parie et bats le croupier!",
     players: "1 – 8 joueurs",
-    duration: "x – x min",
     available: true,
   },
   {
