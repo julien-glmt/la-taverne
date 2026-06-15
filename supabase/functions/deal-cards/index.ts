@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
     // Distribuer 2 cartes à chaque joueur et 2 au croupier
     const dealerHand: Card[] = [];
 
+    const activePlayers = players.filter((p: any) => p.status === "bet_placed");
     // Détecter les Blackjacks naturels
     for (const player of players) {
       const card1 = deck.shift()!;

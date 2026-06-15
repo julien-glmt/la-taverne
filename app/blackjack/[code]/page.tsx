@@ -125,17 +125,19 @@ export default function BlackjackGame() {
         if (bettingTimerRef.current) clearInterval(bettingTimerRef.current);
         if (!room?.betting_started_at || room?.status !== "waiting") return;
 
-        const allBet = players.length > 0 && players.every(p => p.status === "bet_placed");
-        const maxTime = allBet ? 5 : 20;
+        const allBet = players.every(p => p.status === "bet_placed");
+        const maxTime = allBet ? 5 : 15;
 
         const update = () => {
-            const elapsed = (Date.now() - new Date(room.betting_started_at!).getTime()) / 1000;
+            const serverTime = new Date(room.betting_started_at! + 'Z').getTime();
+            const elapsed = (Date.now() - serverTime) / 1000;
             const remaining = Math.max(0, maxTime - elapsed);
             setBettingTimer(Math.ceil(remaining));
+            console.log("elapsed:", elapsed, "remaining:", remaining, "betting_started_at:", room.betting_started_at);
 
             if (remaining <= 0 && user?.id === room?.host_id) {
-            clearInterval(bettingTimerRef.current!);
-            startGame();
+                clearInterval(bettingTimerRef.current!);
+                startGame();
             }
         };
 
@@ -221,7 +223,8 @@ export default function BlackjackGame() {
     if (!room?.turn_started_at || room?.status !== "playing" || room?.phase !== "playing") return;
 
     const update = () => {
-        const elapsed = (Date.now() - new Date(room.turn_started_at!).getTime()) / 1000;
+        const serverTime = new Date(room.turn_started_at! + 'Z').getTime();
+        const elapsed = (Date.now() - serverTime) / 1000;
         const remaining = Math.max(0, 30 - elapsed);
         setTurnTimer(Math.ceil(remaining));
         const current = players[room?.current_player_index ?? 0];
@@ -251,10 +254,14 @@ export default function BlackjackGame() {
     setBetInput(""); setError("");
     }
 
-  async function startGame() {
+    async function startGame() {
+    const nonBettors = players.filter(p => p.status === "waiting");
+    for (const p of nonBettors) {
+        await supabase.from("blackjack_players").update({ status: "spectator" }).eq("id", p.id);
+    }
     const { error: e } = await supabase.functions.invoke("deal-cards", { body: { roomId: code } });
     if (e) setError("Erreur : " + e.message);
-  }
+    }
 
   async function playerAction(action: string) {
     const { error: e } = await supabase.functions.invoke("player-action", {
@@ -507,14 +514,9 @@ export default function BlackjackGame() {
                 </p>
             </div>
             )}
-            {isHost && allBetsPlaced && players.length >= 1 ? (
-              <button onClick={startGame} className="w-full py-4 rounded-sm text-sm font-medium"
-                style={{ background: "#c8a030", color: "#1a1208" }}>
-                Distribuer les cartes 🃏
-              </button>
-            ) : !isHost ? (
-              <p className="text-center text-xs text-[#4a3820] animate-pulse">En attente de l'hôte...</p>
-            ) : null}
+            {!isHost && (
+            <p className="text-center text-xs text-[#4a3820] animate-pulse">En attente de la distribution...</p>
+            )}
           </div>
         )}
         {myPlayer?.hand?.length === 2 && 

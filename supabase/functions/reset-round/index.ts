@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
       is_split: false,
       current_hand: "main",
       status: "waiting",
+      insurance_bet: 0,
     }).eq("room_id", roomId);
 
     // Remettre la room en phase de mise
