@@ -19,7 +19,7 @@ const games = [
     description: "...",
     players: "1 – 8 joueurs",
     duration: "x – x min",
-    available: false,
+    available: true,
   },
   {
     id: "dessin",
@@ -78,10 +78,9 @@ export default function Home() {
           className="text-center mb-16 animate-fade-in-up"
           style={{ animationDelay: "0.1s" }}
         >
-          <h1
-            className="text-5xl font-bold tracking-tight text-[#f0e0b0] mb-4"
-            style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}
-          >
+          <img src="/logo.png" alt="La Taverne" className="w-24 h-24 mx-auto mb-4 drop-shadow-lg" />
+          <h1 className="text-5xl font-bold tracking-tight text-[#f0e0b0] mb-4"
+            style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>
             La Taverne
           </h1>
           <div className="flex items-center justify-center gap-4 mb-6">
@@ -89,9 +88,6 @@ export default function Home() {
             <span className="text-[#5a4020] text-sm">⚔</span>
             <div className="h-px w-16 bg-gradient-to-l from-transparent to-[#5a4020]" />
           </div>
-          <p className="text-[#7a6848] text-sm leading-relaxed max-w-sm mx-auto">
-            Choisis ton jeu.
-          </p>
         </header>
 
         {/* Grille de jeux */}
@@ -217,7 +213,7 @@ export default function Home() {
           <span className="text-xs text-[#3a2810] tracking-widest uppercase">
             La Taverne
           </span>
-          <span className="text-xs text-[#3a2810]">v0.1</span>
+          <span className="text-xs text-[#3a2810]">1.0</span>
         </footer>
       </div>
     </main>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AuthHeader from "../components/AuthHeader";
+import AuthHeaderWrapper from "../components/AuthHeaderWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +15,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "La Taverne",
-  description: "Collecte de jeux de société en ligne pour jouer avec tes amis, ta famille, ou même des inconnus !",
+  description: "Collecte de jeux de société en ligne pour jouer avec tes amis !",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -29,7 +34,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthHeader />
+        <AuthHeaderWrapper />
         {children}
       </body>
     </html>
