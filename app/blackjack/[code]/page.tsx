@@ -219,26 +219,32 @@ export default function BlackjackGame() {
     }, [room?.phase, players.map(p => p.hand?.length).join(",")]);
 
     useEffect(() => {
-    if (turnTimerRef.current) clearInterval(turnTimerRef.current);
-    if (!room?.turn_started_at || room?.status !== "playing" || room?.phase !== "playing") return;
+        if (turnTimerRef.current) clearInterval(turnTimerRef.current);
+        if (!room?.turn_started_at || room?.status !== "playing" || room?.phase !== "playing") return;
 
-    const update = () => {
-        const serverTime = new Date(room.turn_started_at! + 'Z').getTime();
-        const elapsed = (Date.now() - serverTime) / 1000;
-        const remaining = Math.max(0, 30 - elapsed);
-        setTurnTimer(Math.ceil(remaining));
-        const current = players[room?.current_player_index ?? 0];
-        
-        if (remaining <= 0 && current?.id === myPlayer?.id) {
-            clearInterval(turnTimerRef.current!);
-            playerAction("stand");
-        }
-    };
+        const update = () => {
+            const serverTime = new Date(room.turn_started_at! + 'Z').getTime();
+            const elapsed = (Date.now() - serverTime) / 1000;
+            const remaining = Math.max(0, 30 - elapsed);
+            setTurnTimer(Math.ceil(remaining));
+            const current = players[room?.current_player_index ?? 0];
+            
+            if (remaining <= 0 && current?.id === myPlayer?.id) {
+                clearInterval(turnTimerRef.current!);
+                playerAction("stand");
+            }
+        };
 
-    update();
-    turnTimerRef.current = setInterval(update, 500);
-    return () => { if (turnTimerRef.current) clearInterval(turnTimerRef.current); };
+        update();
+        turnTimerRef.current = setInterval(update, 500);
+        return () => { if (turnTimerRef.current) clearInterval(turnTimerRef.current); };
     }, [room?.turn_started_at, room?.current_player_index, players]);
+
+    useEffect(() => {
+        if (players.length === 0 && room && user?.id === room.host_id) {
+            supabase.from("blackjack_rooms").delete().eq("id", code);
+        }
+    }, [players.length]);
     
     async function placeBet() {
     const amount = parseInt(betInput);
@@ -299,8 +305,27 @@ export default function BlackjackGame() {
 
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <button onClick={() => router.push("/blackjack")}
-            className="text-xs text-[#4a3820] hover:text-[#c8a030] tracking-widest uppercase transition-colors">← Quitter</button>
+        <button onClick={async () => {
+        // Compter les joueurs AVANT de se supprimer
+        const { count } = await supabase
+            .from("blackjack_players")
+            .select("*", { count: "exact", head: true })
+            .eq("room_id", code);
+        
+        if (myPlayer) {
+            await supabase.from("blackjack_players").delete().eq("id", myPlayer.id);
+        }
+        
+        // Si j'étais le dernier, supprimer la salle
+        if (count !== null && count <= 1) {
+            await supabase.from("blackjack_rooms").delete().eq("id", code);
+        }
+        
+        router.push("/blackjack");
+        }}
+        className="text-xs text-[#4a3820] hover:text-[#c8a030] tracking-widest uppercase transition-colors">
+        ← Quitter
+        </button>
           <p className="text-sm font-mono text-[#c8a030] tracking-[0.3em]">{code}</p>
           <div className="text-right">
             <p className="text-xs text-[#4a3820]">Solde</p>

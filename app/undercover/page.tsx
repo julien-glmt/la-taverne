@@ -88,15 +88,19 @@ export default function UndercoverLobby() {
         {step === "avatar" && (
           <div>
             <div className="mb-6">
-              <label className="block text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-2">Ton prénom</label>
+              <label className="block text-xs tracking-[0.2em] uppercase text-[#4a3820] mb-2">Ton pseudo</label>
               <input
-                type="text" placeholder="Ex : Julien" value={name} maxLength={20}
-                onChange={e => { setName(e.target.value); setError(""); }}
-                className="w-full px-4 py-3 rounded-sm text-sm text-[#e8dcc8] placeholder-[#3a2810] outline-none"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-                onFocus={e => e.target.style.borderColor = "rgba(200,160,48,0.4)"}
-                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
-              />
+                  type="text" 
+                  placeholder="Ex : Julien" 
+                  value={name} 
+                  maxLength={20}
+                  onChange={e => { setName(e.target.value); setError(""); }}
+                  disabled={true} // <-- 1. Rend le champ inactif
+                  className="w-full px-4 py-3 rounded-sm text-sm text-[#e8dcc8] placeholder-[#3a2810] outline-none disabled:opacity-50 disabled:cursor-not-allowed" // <-- 2. Ajout du style désactivé
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  onFocus={e => e.target.style.borderColor = "rgba(200,160,48,0.4)"}
+                  onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
+                />
             </div>
 
             <div className="mb-8">

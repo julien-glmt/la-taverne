@@ -54,32 +54,26 @@ export default function BlackjackLobby() {
     }
   }, []);
 
-  useEffect(() => {
-    async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login");
-        return;
-      }
+    useEffect(() => {
+        async function init() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { router.push("/login"); return; }
+        const u = session.user;
 
-      const u = session.user;
-      setUser({
-        id: u.id,
-        email: u.email ?? "",
-        displayName: u.user_metadata?.full_name ?? u.user_metadata?.name ?? u.email ?? "Joueur",
-      });
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("username, balance_blackjack")
+            .eq("id", u.id)
+            .single();
 
-      // Récupérer le solde
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("balance_blackjack")
-        .eq("id", u.id)
-        .single();
-      if (profile) setBalance(profile.balance_blackjack);
+        const displayName = profile?.username ?? u.user_metadata?.full_name ?? u.user_metadata?.name ?? u.email ?? "Joueur";
 
-      await fetchRooms();
-      setLoading(false);
-    }
+        setUser({ id: u.id, email: u.email ?? "", displayName });
+        if (profile) setBalance(profile.balance_blackjack);
+
+        await fetchRooms();
+        setLoading(false);
+        }
     init();
   }, [router, fetchRooms]);
 
