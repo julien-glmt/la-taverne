@@ -580,7 +580,7 @@ export default function BlackjackGame() {
                 Assurance ({Math.floor((myPlayer?.bet ?? 0) / 2)} 🪙)
             </button>
             )}
-        {isPlaying && isPlayingPhase && isMyTurn && turnTimer !== null && (
+        {isPlaying && isPlayingPhase && isMyTurn && turnTimer !== null && myPlayer?.hand?.length > 0 && (
         <div className="text-center mb-3">
             <p className="text-xs text-[#4a3820]">Temps restant</p>
             <p className={`text-2xl font-mono font-bold ${turnTimer <= 5 ? "text-[#c87050]" : "text-[#c8a030]"}`}>
@@ -588,7 +588,7 @@ export default function BlackjackGame() {
             </p>
         </div>
         )}
-        {isPlaying && isPlayingPhase && isMyTurn && myPlayer?.status === "playing" && (
+        {isPlaying && isPlayingPhase && isMyTurn && myPlayer?.status === "playing" && myPlayer?.hand?.length > 0 && (
           <div className="flex gap-3">
             <button onClick={() => playerAction("hit")} className="flex-1 py-4 rounded-sm text-sm font-medium"
               style={{ background: "#c8a030", color: "#1a1208" }}>Tirer 🃏</button>
