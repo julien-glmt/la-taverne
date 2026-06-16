@@ -163,7 +163,7 @@ async function moveToNextPlayer(supabase: any, roomId: string, currentIndex: num
   let nextIndex = currentIndex + 1;
   
   // Sauter les spectateurs
-  while (nextIndex < allPlayers.length && allPlayers[nextIndex].status === "spectator") {
+  while (nextIndex < allPlayers.length && !["playing", "blackjack", "done", "bet_placed"].includes(allPlayers[nextIndex].status)) {
     nextIndex++;
   }
 

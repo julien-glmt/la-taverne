@@ -260,6 +260,18 @@ export default function BlackjackGame() {
     setBetInput(""); setError("");
     }
 
+    useEffect(() => {
+        if (!myPlayer) return;
+        
+        const interval = setInterval(async () => {
+            await supabase.from("blackjack_players")
+            .update({ last_seen: new Date().toISOString() })
+            .eq("id", myPlayer.id);
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [myPlayer?.id]);
+
     async function startGame() {
     // Passer tous les joueurs sans mise en spectateur
     await supabase.from("blackjack_players")
