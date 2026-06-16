@@ -151,6 +151,7 @@ Deno.serve(async (req) => {
               cached_votes: votesSnapshot,
             }).eq("id", roomId);
           }
+
           // Reset votes APRÈS end-round
           await supabase.from("players")
             .update({ voted_for: null, vote_locked: false })

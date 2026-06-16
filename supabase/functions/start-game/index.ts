@@ -1,23 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const WORD_PAIRS = [
-  { civilian: "Chien", undercover: "Loup" },
-  { civilian: "Plage", undercover: "Piscine" },
-  { civilian: "Pizza", undercover: "Tarte" },
-  { civilian: "Voiture", undercover: "Moto" },
-  { civilian: "Café", undercover: "Thé" },
-  { civilian: "Cinéma", undercover: "Théâtre" },
-  { civilian: "Football", undercover: "Rugby" },
-  { civilian: "Guitare", undercover: "Violon" },
-  { civilian: "Paris", undercover: "Lyon" },
-  { civilian: "Été", undercover: "Printemps" },
-  { civilian: "Montagne", undercover: "Volcan" },
-  { civilian: "Boulangerie", undercover: "Pâtisserie" },
-  { civilian: "Requin", undercover: "Dauphin" },
-  { civilian: "Astronaute", undercover: "Pilote" },
-  { civilian: "Château", undercover: "Palais" },
-];
-
 Deno.serve(async (req) => {
   // CORS
   if (req.method === "OPTIONS") {

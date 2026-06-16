@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase"; //test
+import { supabase } from "@/lib/supabase";
 
 type Room = {
   id: string;
