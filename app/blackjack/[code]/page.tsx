@@ -195,8 +195,9 @@ export default function BlackjackGame() {
     if (room?.phase !== "playing" || !isPlaying) return;
     
     // Première distribution uniquement
-    const totalCards = players.reduce((sum, p) => sum + (p.hand?.length ?? 0), 0) + (room?.dealer_hand?.length ?? 0);
-    if (totalCards > players.length * 2 + 2) return; // déjà plus de 2 cartes par joueur = pas une distribution initiale
+    const activePlayers = players.filter(p => (p.hand?.length ?? 0) > 0);
+    const totalCards = activePlayers.reduce((sum, p) => sum + (p.hand?.length ?? 0), 0) + (room?.dealer_hand?.length ?? 0);
+    if (totalCards > activePlayers.length * 2 + 2) return;
 
     setAnimatingCards(true);
     const initialVisible: Record<string, number> = {};
@@ -205,9 +206,9 @@ export default function BlackjackGame() {
     setVisibleCards(initialVisible);
 
     const sequence: Array<{id: string, count: number}> = [];
-    players.forEach(p => sequence.push({ id: p.id, count: 1 }));
+    activePlayers.forEach(p => sequence.push({ id: p.id, count: 1 }));
     sequence.push({ id: "dealer", count: 1 });
-    players.forEach(p => sequence.push({ id: p.id, count: 2 }));
+    activePlayers.forEach(p => sequence.push({ id: p.id, count: 2 }));
     sequence.push({ id: "dealer", count: 2 });
 
     sequence.forEach((step, i) => {
