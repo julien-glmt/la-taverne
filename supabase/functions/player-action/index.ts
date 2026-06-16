@@ -160,7 +160,13 @@ Deno.serve(async (req) => {
 });
 
 async function moveToNextPlayer(supabase: any, roomId: string, currentIndex: number, allPlayers: any[]) {
-  const nextIndex = currentIndex + 1;
+  let nextIndex = currentIndex + 1;
+  
+  // Sauter les spectateurs
+  while (nextIndex < allPlayers.length && allPlayers[nextIndex].status === "spectator") {
+    nextIndex++;
+  }
+
   if (nextIndex >= allPlayers.length) {
     await dealerPlay(supabase, roomId);
   } else {

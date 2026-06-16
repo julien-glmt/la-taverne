@@ -152,6 +152,19 @@ Deno.serve(async (req) => {
     dealerHand.push(deck.shift()!);
     const dealerScore = calculateScore(dealerHand);
 
+        // Trouver le premier joueur actif
+    const firstActiveIndex = players.findIndex((p: any) => p.status === "bet_placed");
+
+    await supabase.from("blackjack_rooms").update({
+      deck,
+      dealer_hand: dealerHand,
+      dealer_score: dealerScore,
+      phase: "playing",
+      current_player_index: firstActiveIndex >= 0 ? firstActiveIndex : 0,
+      status: "playing",
+      turn_started_at: new Date().toISOString(),
+    }).eq("id", roomId);
+
     // Mettre à jour la salle
     await supabase.from("blackjack_rooms").update({
       deck,
