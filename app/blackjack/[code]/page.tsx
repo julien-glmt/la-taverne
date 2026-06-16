@@ -261,10 +261,15 @@ export default function BlackjackGame() {
     }
 
     async function startGame() {
-    const nonBettors = players.filter(p => p.status === "waiting");
-    for (const p of nonBettors) {
-        await supabase.from("blackjack_players").update({ status: "spectator" }).eq("id", p.id);
-    }
+    // Passer tous les joueurs sans mise en spectateur
+    await supabase.from("blackjack_players")
+        .update({ status: "spectator" })
+        .eq("room_id", code)
+        .eq("status", "waiting");
+
+    // Petit délai pour s'assurer que Supabase a bien mis à jour
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     const { error: e } = await supabase.functions.invoke("deal-cards", { body: { roomId: code } });
     if (e) setError("Erreur : " + e.message);
     }
