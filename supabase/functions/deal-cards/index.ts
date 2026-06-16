@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     // Distribuer 2 cartes à chaque joueur et 2 au croupier
     const dealerHand: Card[] = [];
 
-    const activePlayers = players.filter((p: any) => p.status === "bet_placed");
+    const activePlayers = players.filter((p: any) => p.bet > 0);
 
     for (const player of activePlayers) {
       const card1 = deck.shift()!;
