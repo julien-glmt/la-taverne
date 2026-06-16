@@ -153,7 +153,9 @@ Deno.serve(async (req) => {
     const dealerScore = calculateScore(dealerHand);
 
         // Trouver le premier joueur actif
-    const firstActiveIndex = players.findIndex((p: any) => p.status === "bet_placed");
+    const firstActiveIndex = players.findIndex((p: any) => 
+      activePlayers.some((ap: any) => ap.id === p.id)
+    );
 
     await supabase.from("blackjack_rooms").update({
       deck,
