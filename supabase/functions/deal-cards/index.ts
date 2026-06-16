@@ -103,8 +103,8 @@ Deno.serve(async (req) => {
     const dealerHand: Card[] = [];
 
     const activePlayers = players.filter((p: any) => p.status === "bet_placed");
-    // Détecter les Blackjacks naturels
-    for (const player of players) {
+
+    for (const player of activePlayers) {
       const card1 = deck.shift()!;
       const card2 = deck.shift()!;
       const hand = [card1, card2];
@@ -117,19 +117,35 @@ Deno.serve(async (req) => {
         status: isBlackjack ? "blackjack" : "playing",
       }).eq("id", player.id);
     }
-    
-    for (const player of players) {
-      const card1 = deck.shift()!;
-      const card2 = deck.shift()!;
-      const hand = [card1, card2];
-      const score = calculateScore(hand);
 
-      await supabase.from("blackjack_players").update({
-        hand,
-        score,
-        status: "playing",
-      }).eq("id", player.id);
-    }
+// Croupier reçoit 2 cartes...
+    // // Détecter les Blackjacks naturels
+    // for (const player of players) {
+    //   const card1 = deck.shift()!;
+    //   const card2 = deck.shift()!;
+    //   const hand = [card1, card2];
+    //   const score = calculateScore(hand);
+    //   const isBlackjack = score === 21 && hand.length === 2;
+
+    //   await supabase.from("blackjack_players").update({
+    //     hand,
+    //     score,
+    //     status: isBlackjack ? "blackjack" : "playing",
+    //   }).eq("id", player.id);
+    // }
+    
+    // for (const player of players) {
+    //   const card1 = deck.shift()!;
+    //   const card2 = deck.shift()!;
+    //   const hand = [card1, card2];
+    //   const score = calculateScore(hand);
+
+    //   await supabase.from("blackjack_players").update({
+    //     hand,
+    //     score,
+    //     status: "playing",
+    //   }).eq("id", player.id);
+    // }
 
     // Croupier reçoit 2 cartes (1 visible, 1 cachée)
     dealerHand.push(deck.shift()!);
