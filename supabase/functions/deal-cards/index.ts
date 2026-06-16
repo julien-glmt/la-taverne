@@ -167,17 +167,6 @@ Deno.serve(async (req) => {
       turn_started_at: new Date().toISOString(),
     }).eq("id", roomId);
 
-    // Mettre à jour la salle
-    await supabase.from("blackjack_rooms").update({
-      deck,
-      dealer_hand: dealerHand,
-      dealer_score: dealerScore,
-      phase: "playing",
-      current_player_index: 0,
-      status: "playing",
-      turn_started_at: new Date().toISOString(),
-    }).eq("id", roomId);
-
     return Response.json({ success: true, dealerHand, dealerScore }, {
       headers: { "Access-Control-Allow-Origin": "*" },
     });
