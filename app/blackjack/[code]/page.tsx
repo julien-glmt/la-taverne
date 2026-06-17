@@ -439,6 +439,15 @@ useEffect(() => {
                   <div key={i} style={{ width: 34, height: 50, borderRadius: 4, border: "1px dashed rgba(200,160,48,0.2)" }} />
                 ))}
               </div>
+              {isPlayingPhase && room?.dealer_hand?.[0] && (
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: "bold", padding: "2px 8px", borderRadius: 10,
+                    background: "rgba(0,0,0,0.6)", color: "#c8a030",
+                    border: "1px solid rgba(255,255,255,0.15)" }}>
+                    {room.dealer_hand[0].numericValue === 1 ? "1/11" : room.dealer_hand[0].numericValue}
+                  </span>
+                </div>
+              )}
               {room?.dealer_score && !isPlayingPhase && (
                 <div style={{ display: "flex", justifyContent: "center" }}>
                   <span style={{ fontSize: 10, fontWeight: "bold", padding: "2px 8px", borderRadius: 10,

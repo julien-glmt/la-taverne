@@ -27,17 +27,14 @@ export default function Home() {
         .fade-up { opacity: 0; animation: fadeInUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
       `}</style>
 
-      {/* Bruit de fond */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-20"
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")` }} />
 
-      {/* Lueur dorée */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none z-0"
         style={{ background: "radial-gradient(ellipse, rgba(200,140,40,0.07) 0%, transparent 70%)" }} />
 
       <div className="relative z-10 max-w-xl mx-auto px-6 py-14">
 
-        {/* Header */}
         <header className="text-center mb-16 fade-up" style={{ animationDelay: "0.05s" }}>
           <img src="/logo.png" alt="La Taverne" className="w-20 h-20 mx-auto mb-5 drop-shadow-lg" />
           <h1 className="text-5xl text-[#f0e0b0] mb-3" style={{ fontFamily: "Georgia, serif", fontWeight: 400, letterSpacing: "-0.02em" }}>
@@ -50,7 +47,6 @@ export default function Home() {
           )}
         </header>
 
-        {/* Jeux */}
         <section className="mb-12">
           <p className="text-[10px] tracking-[0.3em] uppercase text-[#3a2810] mb-5">Jeux disponibles</p>
 
@@ -122,25 +118,32 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* À venir */}
+            {/* Gartic — bientôt */}
             <div className="fade-up" style={{ animationDelay: "0.35s" }}>
               <div className="rounded-sm p-5" style={{ background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.04)", opacity: 0.5 }}>
                 <div className="flex items-start gap-4">
-                  <div className="text-4xl mt-0.5 flex-shrink-0" style={{ filter: "grayscale(1)" }}>🎲</div>
-                  <div className="flex-1">
+                  <div className="text-4xl mt-0.5 flex-shrink-0" style={{ filter: "grayscale(1)" }}>🎨</div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <h2 className="text-base text-[#c8b888]" style={{ fontFamily: "Georgia, serif" }}>Prochain jeu</h2>
+                      <h2 className="text-base text-[#c8b888]" style={{ fontFamily: "Georgia, serif" }}>Gartic</h2>
                       <span className="text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded-sm" style={{ background: "rgba(255,255,255,0.04)", color: "#4a3820", border: "1px solid rgba(255,255,255,0.06)" }}>Bientôt</span>
                     </div>
-                    <p className="text-xs text-[#4a3820]">En cours de développement...</p>
+                    <p className="text-xs text-[#4a3820] leading-relaxed mb-3">
+                      Un joueur dessine, les autres devinent. En cours de développement...
+                    </p>
+                    <div className="flex gap-4">
+                      <span className="text-[10px] text-[#3a2810]">👥 2 – 8 joueurs</span>
+                      <span className="text-[10px] text-[#2a1808]">·</span>
+                      <span className="text-[10px] text-[#3a2810]">🖊️ Dessin en temps réel</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="pt-6 border-t border-[#221608] flex justify-between items-center fade-up" style={{ animationDelay: "0.5s" }}>
           <span className="text-[10px] text-[#2a1e0e] tracking-widest uppercase">La Taverne</span>
           <div className="flex gap-4">
