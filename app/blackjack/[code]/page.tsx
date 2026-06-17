@@ -256,39 +256,64 @@ export default function BlackjackGame() {
         return () => { if (turnTimerRef.current) clearInterval(turnTimerRef.current); };
     }, [room?.turn_started_at, room?.current_player_index, players]);
 
-    useEffect(() => {
-        if (players.length === 0 && room && user?.id === room.host_id) {
-            supabase.from("blackjack_rooms").delete().eq("id", code);
-        }
-    }, [players.length]);
-    
-    async function placeBet() {
-    const amount = parseInt(betInput);
-    if (!amount || amount < 1 || amount > balance) { setError("Mise invalide."); return; }
-    
-    await supabase.from("blackjack_players").update({ bet: amount, status: "bet_placed" }).eq("id", myPlayer?.id);
-    
-    // Démarrer le timer si pas encore commencé
-    if (!room?.betting_started_at) {
-        await supabase.from("blackjack_rooms").update({ betting_started_at: new Date().toISOString() }).eq("id", code);
+  useEffect(() => {
+    if (players.length === 0 && room && user?.id === room.host_id) {
+      supabase.from("blackjack_rooms").delete().eq("id", code);
     }
-    
-    setBetInput(""); setError("");
+  }, [players.length]);
+  
+  function playTurnSound() {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {}
+  }
+
+  useEffect(() => {
+    const current = players[room?.current_player_index ?? 0];
+    const isMyT = current?.id === myPlayer?.id;
+    const isPlayingP = room?.phase === "playing";
+    if (isMyT && isPlayingP && myPlayer?.hand?.length && myPlayer.hand.length > 0) {
+      playTurnSound();
     }
+  }, [room?.current_player_index, room?.phase]);
 
-    useEffect(() => {
-        if (!myPlayer) return;
-        
-        const interval = setInterval(async () => {
-            await supabase.from("blackjack_players")
-            .update({ last_seen: new Date().toISOString() })
-            .eq("id", myPlayer.id);
-        }, 30000);
+  async function placeBet() {
+  const amount = parseInt(betInput);
+  if (!amount || amount < 1 || amount > balance) { setError("Mise invalide."); return; }
+  
+  await supabase.from("blackjack_players").update({ bet: amount, status: "bet_placed" }).eq("id", myPlayer?.id);
+  
+  // Démarrer le timer si pas encore commencé
+  if (!room?.betting_started_at) {
+      await supabase.from("blackjack_rooms").update({ betting_started_at: new Date().toISOString() }).eq("id", code);
+  }
+  
+  setBetInput(""); setError("");
+  }
 
-        return () => clearInterval(interval);
-    }, [myPlayer?.id]);
+useEffect(() => {
+  if (!myPlayer) return;
+  
+  const interval = setInterval(async () => {
+      await supabase.from("blackjack_players")
+      .update({ last_seen: new Date().toISOString() })
+      .eq("id", myPlayer.id);
+  }, 30000);
 
-    async function startGame() {
+    return () => clearInterval(interval);
+  }, [myPlayer?.id]);
+
+  async function startGame() {
     // Passer tous les joueurs sans mise en spectateur
     await supabase.from("blackjack_players")
         .update({ status: "spectator" })
@@ -300,7 +325,7 @@ export default function BlackjackGame() {
 
     const { error: e } = await supabase.functions.invoke("deal-cards", { body: { roomId: code } });
     if (e) setError("Erreur : " + e.message);
-    }
+  }
 
   async function playerAction(action: string) {
     const { error: e } = await supabase.functions.invoke("player-action", {
