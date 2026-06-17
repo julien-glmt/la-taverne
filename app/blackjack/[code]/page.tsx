@@ -49,24 +49,27 @@ export default function BlackjackGame() {
   const params = useParams();
   const router = useRouter();
   const code = (params.code as string).toUpperCase();
-
-    const [room, setRoom] = useState<Room | null>(null);
-    const [players, setPlayers] = useState<Player[]>([]);
-    const [myPlayer, setMyPlayer] = useState<Player | null>(null);
-    const [user, setUser] = useState<any>(null);
-    const [balance, setBalance] = useState(0);
-    const [betInput, setBetInput] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [bettingTimer, setBettingTimer] = useState<number | null>(null);
-    const bettingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const [resultsTimer, setResultsTimer] = useState<number | null>(null);
-    const [animatingCards, setAnimatingCards] = useState<boolean>(false);
-    const [visibleCards, setVisibleCards] = useState<Record<string, number>>({});
-    const resultsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const [turnTimer, setTurnTimer] = useState<number | null>(null);
-    const turnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const [notification, setNotification] = useState<string | null>(null);
+  const [room, setRoom] = useState<Room | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [myPlayer, setMyPlayer] = useState<Player | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [balance, setBalance] = useState(0);
+  const [betInput, setBetInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [bettingTimer, setBettingTimer] = useState<number | null>(null);
+  const bettingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [resultsTimer, setResultsTimer] = useState<number | null>(null);
+  const [animatingCards, setAnimatingCards] = useState<boolean>(false);
+  const [visibleCards, setVisibleCards] = useState<Record<string, number>>({});
+  const resultsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [turnTimer, setTurnTimer] = useState<number | null>(null);
+  const turnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{name: string, text: string, time: string}[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchRoom = useCallback(async () => {
     const { data } = await supabase.from("blackjack_rooms").select("*").eq("id", code).single();
@@ -111,17 +114,16 @@ export default function BlackjackGame() {
     const ch = supabase.channel(`bj-${code}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "blackjack_rooms", filter: `id=eq.${code}` }, fetchRoom)
       .on("postgres_changes", { event: "*", schema: "public", table: "blackjack_players", filter: `room_id=eq.${code}` }, fetchPlayers)
-      .on("postgres_changes", { 
-        event: "INSERT", 
-        schema: "public", 
-        table: "blackjack_players", 
-        filter: `room_id=eq.${code}` 
-      }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "blackjack_players", filter: `room_id=eq.${code}` }, (payload) => {
         const newPlayer = payload.new as any;
         if (newPlayer.user_id !== user?.id) {
           setNotification(`${newPlayer.name} a rejoint la table !`);
           setTimeout(() => setNotification(null), 3000);
         }
+      })
+      .on("broadcast", { event: "chat" }, (payload) => {
+        setChatMessages((prev: any[]) => [...prev, payload.payload]);
+        if (!chatOpen) setUnreadCount((prev: number) => prev + 1);
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -307,16 +309,29 @@ export default function BlackjackGame() {
     if (e) setError("Erreur : " + e.message);
   }
 
-    const isHost = user?.id === room?.host_id;
-    const isWaiting = room?.status === "waiting";
-    const isPlaying = room?.status === "playing";
-    const isPlayingPhase = room?.phase === "playing";
-    const currentPlayer = players[room?.current_player_index ?? 0];
-    const isMyTurn = currentPlayer?.id === myPlayer?.id;
-    const allBetsPlaced = players.length > 0 && players.every(p => ["bet_placed","playing","done"].includes(p.status));
-    const maxP = Math.min(Math.max(room?.max_players ?? 5, players.length, 1), 8);
-    const slots = Array.from({ length: maxP }, (_, i) => players[i] ?? null);
-    const positions = POSITIONS[maxP] ?? POSITIONS[5];
+  async function sendChat(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    const msg = {
+      name: myPlayer?.name ?? "?",
+      text: chatInput.trim(),
+      time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+    };
+    await supabase.channel(`bj-${code}`).send({ type: "broadcast", event: "chat", payload: msg });
+    setChatMessages(prev => [...prev, msg]);
+    setChatInput("");
+  }
+
+  const isHost = user?.id === room?.host_id;
+  const isWaiting = room?.status === "waiting";
+  const isPlaying = room?.status === "playing";
+  const isPlayingPhase = room?.phase === "playing";
+  const currentPlayer = players[room?.current_player_index ?? 0];
+  const isMyTurn = currentPlayer?.id === myPlayer?.id;
+  const allBetsPlaced = players.length > 0 && players.every(p => ["bet_placed","playing","done"].includes(p.status));
+  const maxP = Math.min(Math.max(room?.max_players ?? 5, players.length, 1), 8);
+  const slots = Array.from({ length: maxP }, (_, i) => players[i] ?? null);
+  const positions = POSITIONS[maxP] ?? POSITIONS[5];
 
   if (loading) return (
     <div className="min-h-screen bg-[#1a1208] flex items-center justify-center">
@@ -649,6 +664,49 @@ export default function BlackjackGame() {
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-sm text-sm z-50"
             style={{ background: "#1e160a", border: "1px solid rgba(200,160,48,0.3)", color: "#c8b888", boxShadow: "0 4px 20px rgba(0,0,0,0.6)", animation: "fadeInUp 0.3s ease-out" }}>
             👋 {notification}
+          </div>
+        )}
+        {/* Bouton chat */}
+        <button onClick={() => { setChatOpen(!chatOpen); setUnreadCount(0); }}
+          className="fixed bottom-6 right-6 w-12 h-12 rounded-full flex items-center justify-center text-xl z-40"
+          style={{ background: "rgba(200,160,48,0.15)", border: "1px solid rgba(200,160,48,0.3)", boxShadow: "0 4px 16px rgba(0,0,0,0.4)" }}>
+          💬
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold"
+              style={{ background: "#c8a030", color: "#1a1208" }}>{unreadCount}</span>
+          )}
+        </button>
+
+        {/* Panneau chat */}
+        {chatOpen && (
+          <div className="fixed bottom-20 right-6 w-72 rounded-sm z-40 flex flex-col"
+            style={{ background: "#1e160a", border: "1px solid rgba(200,160,48,0.2)", boxShadow: "0 8px 32px rgba(0,0,0,0.6)", maxHeight: "400px" }}>
+            <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+              <p className="text-xs tracking-widest uppercase text-[#4a3820]">Chat</p>
+              <button onClick={() => setChatOpen(false)} className="text-xs text-[#4a3820] hover:text-[#c8a030]">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2" style={{ minHeight: 200, maxHeight: 300 }}>
+              {chatMessages.length === 0 && (
+                <p className="text-xs text-[#3a2810] text-center mt-4">Aucun message pour l'instant...</p>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex flex-col ${msg.name === myPlayer?.name ? "items-end" : "items-start"}`}>
+                  <span className="text-[9px] text-[#4a3820] mb-0.5">{msg.name} · {msg.time}</span>
+                  <span className="text-xs px-3 py-1.5 rounded-sm max-w-[85%]"
+                    style={{ background: msg.name === myPlayer?.name ? "rgba(200,160,48,0.15)" : "rgba(255,255,255,0.05)", color: "#c8b888" }}>
+                    {msg.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={sendChat} className="p-3 border-t flex gap-2" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+              <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                placeholder="Message..." maxLength={200}
+                className="flex-1 px-3 py-2 rounded-sm text-xs text-[#e8dcc8] placeholder-[#3a2810] outline-none"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }} />
+              <button type="submit" className="px-3 py-2 rounded-sm text-xs"
+                style={{ background: "#c8a030", color: "#1a1208" }}>→</button>
+            </form>
           </div>
         )}
     </main>
