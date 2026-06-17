@@ -283,6 +283,17 @@ export default function GameRoom() {
     };
   }, [myPlayer?.id, room?.status]);
 
+  useEffect(() => {
+    const alivePlayers = players.filter(p => p.is_alive);
+    const currentPlayer = alivePlayers[(room?.current_player_index ?? 0) % Math.max(alivePlayers.length, 1)];
+    const isMyT = currentPlayer?.id === myPlayer?.id;
+    const isPlayingP = room?.phase === "playing" && room?.status === "playing";
+    
+    if (isMyT && isPlayingP) {
+      playUndercoverTurnSound();
+    }
+  }, [room?.current_player_index, room?.phase, room?.status, myPlayer?.id, players]);
+
   function playUndercoverTurnSound() {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -569,13 +580,6 @@ export default function GameRoom() {
   const elapsed = room?.turn_started_at ? (Date.now() - new Date(room.turn_started_at).getTime()) / 1000 : 0;
   const timeLeft = Math.max(0, Math.ceil((room?.timer_seconds ?? 30) - elapsed));
   const timerPercent = room ? (timeLeft / room.timer_seconds) * 100 : 100;
-
-  // Après les déclarations de isMyTurn et isPlayingPhase
-  useEffect(() => {
-    if (isMyTurn && isPlayingPhase) {
-      playUndercoverTurnSound();
-    }
-  }, [isMyTurn, isPlayingPhase]);
 
   return (
     <main className="min-h-screen bg-[#1a1208] text-[#e8dcc8] font-sans relative overflow-hidden">
