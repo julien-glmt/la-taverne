@@ -283,6 +283,23 @@ export default function GameRoom() {
     };
   }, [myPlayer?.id, room?.status]);
 
+  function playUndercoverTurnSound() {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.6);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.6);
+    } catch (e) {}
+  }
+
   async function updateSettings(key: string, value: number | boolean) {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
@@ -547,13 +564,18 @@ export default function GameRoom() {
   const isMrWhiteGuess = room?.phase === "mrwhite_guess";
   const isGameOver = ["civilians_win", "undercover_wins", "game_over"].includes(room?.status ?? "");  const allReady = players.length >= 3;
   const maxUndercovers = players.length <= 4 ? 1 : 2;
-
   const eliminatedPlayer = players.find(p => p.id === room?.last_eliminated_id);
   const sortedByScore = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-
   const elapsed = room?.turn_started_at ? (Date.now() - new Date(room.turn_started_at).getTime()) / 1000 : 0;
   const timeLeft = Math.max(0, Math.ceil((room?.timer_seconds ?? 30) - elapsed));
   const timerPercent = room ? (timeLeft / room.timer_seconds) * 100 : 100;
+
+  // Après les déclarations de isMyTurn et isPlayingPhase
+  useEffect(() => {
+    if (isMyTurn && isPlayingPhase) {
+      playUndercoverTurnSound();
+    }
+  }, [isMyTurn, isPlayingPhase]);
 
   return (
     <main className="min-h-screen bg-[#1a1208] text-[#e8dcc8] font-sans relative overflow-hidden">
