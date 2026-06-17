@@ -218,6 +218,12 @@ export default function BlackjackLobby() {
           )}
         </div>
       </div>
+      {/* Bouton leaderboard */}
+        <button onClick={() => router.push("/blackjack/leaderboard")}
+        className="fixed bottom-6 right-6 w-12 h-12 rounded-full flex items-center justify-center text-xl"
+        style={{ background: "rgba(200,160,48,0.15)", border: "1px solid rgba(200,160,48,0.3)", boxShadow: "0 4px 16px rgba(0,0,0,0.4)" }}>
+        🏆
+        </button>
     </main>
   );
 }

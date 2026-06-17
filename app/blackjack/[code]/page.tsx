@@ -66,6 +66,7 @@ export default function BlackjackGame() {
     const resultsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [turnTimer, setTurnTimer] = useState<number | null>(null);
     const turnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [notification, setNotification] = useState<string | null>(null);
 
   const fetchRoom = useCallback(async () => {
     const { data } = await supabase.from("blackjack_rooms").select("*").eq("id", code).single();
@@ -110,6 +111,18 @@ export default function BlackjackGame() {
     const ch = supabase.channel(`bj-${code}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "blackjack_rooms", filter: `id=eq.${code}` }, fetchRoom)
       .on("postgres_changes", { event: "*", schema: "public", table: "blackjack_players", filter: `room_id=eq.${code}` }, fetchPlayers)
+      .on("postgres_changes", { 
+        event: "INSERT", 
+        schema: "public", 
+        table: "blackjack_players", 
+        filter: `room_id=eq.${code}` 
+      }, (payload) => {
+        const newPlayer = payload.new as any;
+        if (newPlayer.user_id !== user?.id) {
+          setNotification(`${newPlayer.name} a rejoint la table !`);
+          setTimeout(() => setNotification(null), 3000);
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [code, fetchRoom, fetchPlayers]);
@@ -632,6 +645,12 @@ export default function BlackjackGame() {
         style={{ background: "rgba(200,160,48,0.15)", border: "1px solid rgba(200,160,48,0.3)", boxShadow: "0 4px 16px rgba(0,0,0,0.4)" }}>
         🏆
         </button>
+        {notification && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-sm text-sm z-50"
+            style={{ background: "#1e160a", border: "1px solid rgba(200,160,48,0.3)", color: "#c8b888", boxShadow: "0 4px 20px rgba(0,0,0,0.6)", animation: "fadeInUp 0.3s ease-out" }}>
+            👋 {notification}
+          </div>
+        )}
     </main>
   );
 }

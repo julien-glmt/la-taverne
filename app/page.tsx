@@ -1,217 +1,152 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-
-const games = [
-  {
-    id: "undercover",
-    name: "Undercover",
-    emoji: "🕵️",
-    description: "Trouve qui est l'imposteur! À moins que ce soit toi ?",
-    players: "3 – 8 joueurs",
-    available: true,
-  },
-  {
-    id: "blackjack",
-    name: "Blackjack",
-    emoji: "🃏",
-    description: "Parie et bats le croupier!",
-    players: "1 – 8 joueurs",
-    available: true,
-  },
-  {
-    id: "dessin",
-    name: "A venir",
-    emoji: "🎨",
-    description: "...",
-    players: "x – x joueurs",
-    duration: "x – x min",
-    available: false,
-  },
-];
+import { supabase } from "../lib/supabase";
 
 export default function Home() {
   const [hovered, setHovered] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data: profile } = await supabase.from("profiles").select("username").eq("id", session.user.id).single();
+      setUsername(profile?.username ?? session.user.user_metadata?.full_name ?? null);
+    }
+    loadUser();
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#1a1208] text-[#e8dcc8] font-sans overflow-x-hidden">
-      {/* Styles CSS injectés pour l'animation d'apparition */}
       <style jsx global>{`
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in-up {
-          opacity: 0;
-          animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .fade-up { opacity: 0; animation: fadeInUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
       `}</style>
 
-      {/* Bruit de fond subtil */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 opacity-30"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")`,
-        }}
-      />
+      {/* Bruit de fond */}
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-20"
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")` }} />
 
-      {/* Lueur centrale */}
-      <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse, rgba(200,140,40,0.08) 0%, transparent 70%)",
-        }}
-      />
+      {/* Lueur dorée */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none z-0"
+        style={{ background: "radial-gradient(ellipse, rgba(200,140,40,0.07) 0%, transparent 70%)" }} />
 
-      <div className="relative z-10 max-w-2xl mx-auto px-6 py-12">
+      <div className="relative z-10 max-w-xl mx-auto px-6 py-14">
+
         {/* Header */}
-        <header
-          className="text-center mb-16 animate-fade-in-up"
-          style={{ animationDelay: "0.1s" }}
-        >
-          <img src="/logo.png" alt="La Taverne" className="w-24 h-24 mx-auto mb-4 drop-shadow-lg" />
-          <h1 className="text-5xl font-bold tracking-tight text-[#f0e0b0] mb-4"
-            style={{ fontFamily: "Georgia, serif", fontWeight: 400 }}>
+        <header className="text-center mb-16 fade-up" style={{ animationDelay: "0.05s" }}>
+          <img src="/logo.png" alt="La Taverne" className="w-20 h-20 mx-auto mb-5 drop-shadow-lg" />
+          <h1 className="text-5xl text-[#f0e0b0] mb-3" style={{ fontFamily: "Georgia, serif", fontWeight: 400, letterSpacing: "-0.02em" }}>
             La Taverne
           </h1>
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="h-px w-16 bg-gradient-to-r from-transparent to-[#5a4020]" />
-            <span className="text-[#5a4020] text-sm">⚔</span>
-            <div className="h-px w-16 bg-gradient-to-l from-transparent to-[#5a4020]" />
-          </div>
+          {username ? (
+            <p className="text-sm text-[#6a5838]">Bonsoir, <span className="text-[#c8a030]">{username}</span> 🍺</p>
+          ) : (
+            <p className="text-sm text-[#6a5838]">Jeux en ligne entre amis</p>
+          )}
         </header>
 
-        {/* Grille de jeux */}
-        <section
-          className="animate-fade-in-up"
-          style={{ animationDelay: "0.3s" }}
-        >
-          <p className="text-xs tracking-[0.25em] uppercase text-[#4a3820] mb-6">
-            Choisir un jeu
-          </p>
+        {/* Jeux */}
+        <section className="mb-12">
+          <p className="text-[10px] tracking-[0.3em] uppercase text-[#3a2810] mb-5">Jeux disponibles</p>
 
           <div className="flex flex-col gap-3">
-            {games.map((game, index) => {
-              // Le contenu de la carte
-              const CardContent = (
-                <div
-                  className="flex items-center gap-5 p-5 rounded-sm transition-all duration-200"
-                  style={{
-                    background:
-                      hovered === game.id && game.available
-                        ? "rgba(200,140,40,0.08)"
-                        : "rgba(255,255,255,0.02)",
-                    border:
-                      hovered === game.id && game.available
-                        ? "1px solid rgba(200,140,40,0.3)"
-                        : "1px solid rgba(255,255,255,0.05)",
-                    // Point 1 : Opacité légèrement augmentée (0.55 au lieu de 0.4) pour une meilleure lisibilité
-                    opacity: game.available ? 1 : 0.55,
-                  }}
-                >
-                  {/* Emoji (avec un filtre noir et blanc si indisponible) */}
-                  <div
-                    className="text-3xl w-12 text-center flex-shrink-0 transition-all"
-                    style={{
-                      filter: game.available ? "none" : "grayscale(100%)",
-                    }}
-                  >
-                    {game.emoji}
-                  </div>
 
-                  {/* Infos */}
+            {/* Undercover */}
+            <Link href="/undercover"
+              onMouseEnter={() => setHovered("undercover")}
+              onMouseLeave={() => setHovered(null)}
+              className="block fade-up"
+              style={{ animationDelay: "0.15s" }}>
+              <div className="relative overflow-hidden rounded-sm p-5 transition-all duration-200"
+                style={{
+                  background: hovered === "undercover" ? "rgba(200,140,40,0.07)" : "rgba(255,255,255,0.025)",
+                  border: hovered === "undercover" ? "1px solid rgba(200,140,40,0.25)" : "1px solid rgba(255,255,255,0.06)",
+                }}>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl mt-0.5 flex-shrink-0">🕵️</div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h2
-                        className="text-base text-[#e8dcc8]"
-                        style={{ fontFamily: "Georgia, serif" }}
-                      >
-                        {game.name}
-                      </h2>
-                      {!game.available && (
-                        <span className="text-[10px] tracking-widest uppercase text-[#5a4428] border border-[#3a2810] px-2 py-0.5 rounded-sm bg-[#22180c]">
-                          Bientôt
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h2 className="text-base text-[#f0e0b0]" style={{ fontFamily: "Georgia, serif" }}>Undercover</h2>
+                      <span className="text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded-sm" style={{ background: "rgba(100,200,100,0.1)", color: "#6abf6a", border: "1px solid rgba(100,200,100,0.15)" }}>En ligne</span>
                     </div>
-                    <p className="text-xs text-[#6a5838] leading-relaxed">
-                      {game.description}
+                    <p className="text-xs text-[#6a5838] leading-relaxed mb-3">
+                      Trouve l'imposteur avant qu'il te démasque. Chaque joueur reçoit un mot secret — l'Undercover en a un légèrement différent.
                     </p>
-                    <div className="flex gap-4 mt-2">
-                      <span className="text-[11px] text-[#4a3820]">
-                        {game.players}
-                      </span>
-                      <span className="text-[11px] text-[#3a2810]">·</span>
-                      <span className="text-[11px] text-[#4a3820]">
-                        {game.duration}
-                      </span>
+                    <div className="flex gap-4">
+                      <span className="text-[10px] text-[#4a3820]">👥 3 – 8 joueurs</span>
+                      <span className="text-[10px] text-[#3a2810]">·</span>
+                      <span className="text-[10px] text-[#4a3820]">⏱ 10 – 20 min</span>
                     </div>
                   </div>
-
-                  {/* Flèche */}
-                  {game.available && (
-                    <div
-                      className="text-[#c8a030] text-lg flex-shrink-0 transition-transform duration-200"
-                      style={{
-                        transform:
-                          hovered === game.id
-                            ? "translateX(4px)"
-                            : "translateX(0)",
-                      }}
-                    >
-                      →
-                    </div>
-                  )}
+                  <div className="text-[#c8a030] mt-1 transition-transform duration-200 flex-shrink-0"
+                    style={{ transform: hovered === "undercover" ? "translateX(4px)" : "translateX(0)" }}>→</div>
                 </div>
-              );
+              </div>
+            </Link>
 
-              // Calcul du délai pour l'effet de cascade (0.4s, puis 0.5s, puis 0.6s...)
-              const delay = `${0.4 + index * 0.1}s`;
-
-              if (game.available) {
-                return (
-                  <Link
-                    href={`/${game.id}`}
-                    key={game.id}
-                    onMouseEnter={() => setHovered(game.id)}
-                    onMouseLeave={() => setHovered(null)}
-                    className="block relative group decoration-transparent animate-fade-in-up"
-                    style={{ animationDelay: delay }}
-                  >
-                    {CardContent}
-                  </Link>
-                );
-              } else {
-                return (
-                  <div
-                    key={game.id}
-                    className="relative cursor-default animate-fade-in-up"
-                    style={{ animationDelay: delay }}
-                  >
-                    {CardContent}
+            {/* Blackjack */}
+            <Link href="/blackjack"
+              onMouseEnter={() => setHovered("blackjack")}
+              onMouseLeave={() => setHovered(null)}
+              className="block fade-up"
+              style={{ animationDelay: "0.25s" }}>
+              <div className="relative overflow-hidden rounded-sm p-5 transition-all duration-200"
+                style={{
+                  background: hovered === "blackjack" ? "rgba(200,140,40,0.07)" : "rgba(255,255,255,0.025)",
+                  border: hovered === "blackjack" ? "1px solid rgba(200,140,40,0.25)" : "1px solid rgba(255,255,255,0.06)",
+                }}>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl mt-0.5 flex-shrink-0">🃏</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h2 className="text-base text-[#f0e0b0]" style={{ fontFamily: "Georgia, serif" }}>Blackjack</h2>
+                      <span className="text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded-sm" style={{ background: "rgba(100,200,100,0.1)", color: "#6abf6a", border: "1px solid rgba(100,200,100,0.15)" }}>En ligne</span>
+                    </div>
+                    <p className="text-xs text-[#6a5838] leading-relaxed mb-3">
+                      Rejoins une table, mise tes jetons et bats le croupier sans dépasser 21. Split, double mise, assurance — toutes les règles casino.
+                    </p>
+                    <div className="flex gap-4">
+                      <span className="text-[10px] text-[#4a3820]">👥 1 – 8 joueurs</span>
+                      <span className="text-[10px] text-[#3a2810]">·</span>
+                      <span className="text-[10px] text-[#4a3820]">🪙 Jetons virtuels</span>
+                    </div>
                   </div>
-                );
-              }
-            })}
+                  <div className="text-[#c8a030] mt-1 transition-transform duration-200 flex-shrink-0"
+                    style={{ transform: hovered === "blackjack" ? "translateX(4px)" : "translateX(0)" }}>→</div>
+                </div>
+              </div>
+            </Link>
+
+            {/* À venir */}
+            <div className="fade-up" style={{ animationDelay: "0.35s" }}>
+              <div className="rounded-sm p-5" style={{ background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.04)", opacity: 0.5 }}>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl mt-0.5 flex-shrink-0" style={{ filter: "grayscale(1)" }}>🎲</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h2 className="text-base text-[#c8b888]" style={{ fontFamily: "Georgia, serif" }}>Prochain jeu</h2>
+                      <span className="text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded-sm" style={{ background: "rgba(255,255,255,0.04)", color: "#4a3820", border: "1px solid rgba(255,255,255,0.06)" }}>Bientôt</span>
+                    </div>
+                    <p className="text-xs text-[#4a3820]">En cours de développement...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         {/* Footer */}
-        <footer
-          className="mt-20 pt-8 border-t border-[#2a1e0e] flex justify-between items-center animate-fade-in-up"
-          style={{ animationDelay: "0.8s" }}
-        >
-          <span className="text-xs text-[#3a2810] tracking-widest uppercase">
-            La Taverne
-          </span>
-          <span className="text-xs text-[#3a2810]">1.0</span>
+        <footer className="pt-6 border-t border-[#221608] flex justify-between items-center fade-up" style={{ animationDelay: "0.5s" }}>
+          <span className="text-[10px] text-[#2a1e0e] tracking-widest uppercase">La Taverne</span>
+          <div className="flex gap-4">
+            <Link href="/login" className="text-[10px] text-[#3a2810] hover:text-[#c8a030] transition-colors">Connexion</Link>
+            <Link href="/account" className="text-[10px] text-[#3a2810] hover:text-[#c8a030] transition-colors">Mon compte</Link>
+          </div>
         </footer>
       </div>
     </main>
