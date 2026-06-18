@@ -36,12 +36,12 @@ export default function Home() {
       <div className="relative z-10 max-w-xl mx-auto px-6 py-14">
 
         <header className="text-center mb-16 fade-up" style={{ animationDelay: "0.05s" }}>
-          <img src="/logo.png" alt="La Taverne" className="w-20 h-20 mx-auto mb-5 drop-shadow-lg" />
+          <img src="/logo.png" alt="La Taverne" className="w-30 h-30 mx-auto mb-5 drop-shadow-lg" />
           <h1 className="text-5xl text-[#f0e0b0] mb-3" style={{ fontFamily: "Georgia, serif", fontWeight: 400, letterSpacing: "-0.02em" }}>
             La Taverne
           </h1>
           {username ? (
-            <p className="text-sm text-[#6a5838]">Bonsoir, <span className="text-[#c8a030]">{username}</span> 🍺</p>
+            <p className="text-sm text-[#6a5838]">{new Date().getHours() < 18 ? "Bonjour" : "Bonsoir"}, <span className="text-[#c8a030]">{username}</span> 🍺</p>
           ) : (
             <p className="text-sm text-[#6a5838]">Jeux en ligne entre amis</p>
           )}

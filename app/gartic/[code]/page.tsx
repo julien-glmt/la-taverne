@@ -108,6 +108,9 @@ export default function GarticGame() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
 
+  const [hintWord, setHintWord] = useState<string[]>([]);
+  
+
   const fetchRoom = useCallback(async () => {
     const { data } = await supabase.from("gartic_rooms").select("*").eq("id", code).single();
     if (data) {
@@ -167,9 +170,39 @@ export default function GarticGame() {
       })
       .subscribe();
 
+  useEffect(() => {
+    if (!room?.current_word) return;
+    setHintWord(room.current_word.split("").map(c => c === " " ? " " : "_"));
+  }, [room?.current_word]);
+
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
   }, [code, fetchRoom, fetchPlayers, user?.id]);
+
+  useEffect(() => {
+      if (!room?.current_word || !room?.turn_started_at || room?.status !== "playing") return;
+      const currentDrawer = players[room?.current_drawer_index ?? 0];
+      const amIDrawer = currentDrawer?.user_id === user?.id;
+      if (amIDrawer || myPlayer?.has_guessed) return;
+
+      const word = room.current_word;
+      const interval = setInterval(() => {
+        const elapsed = (Date.now() - new Date(room.turn_started_at! + "Z").getTime()) / 1000;
+        const lettersToReveal = Math.floor(elapsed / 15);
+
+        setHintWord(prev => {
+          const next = [...prev];
+          const hidden = next.map((c, i) => c === "_" ? i : -1).filter(i => i >= 0);
+          const alreadyRevealed = word.replace(/ /g, "").length - hidden.length;
+          const toRevealCount = Math.max(0, lettersToReveal - alreadyRevealed);
+          const toReveal = hidden.slice(0, toRevealCount);
+          toReveal.forEach(i => { next[i] = word[i]; });
+          return next;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, [room?.turn_started_at, room?.current_word, room?.status, players, user?.id, myPlayer?.has_guessed]);
 
   // Sync myPlayer
   useEffect(() => {
@@ -618,7 +651,13 @@ export default function GarticGame() {
                 ) : myPlayer?.has_guessed ? (
                   <p className="text-lg text-[#6abf6a] font-medium" style={{ fontFamily: "Georgia, serif" }}>✓ {room?.current_word}</p>
                 ) : (
-                  <p className="text-lg text-[#c8b888] tracking-widest font-mono">{room?.current_word ? maskedWord(room.current_word) : ""}</p>
+                <p className="text-lg text-[#c8b888] tracking-widest font-mono">
+                  {hintWord.map((c, i) => (
+                    <span key={i} style={{ color: c !== "_" && c !== " " ? "#c8a030" : "#c8b888" }}>
+                      {c === "_" ? "_ " : c === " " ? "  " : c + " "}
+                    </span>
+                  ))}
+                </p>                
                 )}
                 <p className="text-xs text-[#4a3820] mt-1">
                   {isDrawer ? "Tu dessines" : `${drawer?.name} dessine`}
