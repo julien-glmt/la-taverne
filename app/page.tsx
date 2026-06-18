@@ -43,7 +43,7 @@ export default function Home() {
           {username ? (
             <p className="text-sm text-[#6a5838]">{new Date().getHours() < 18 ? "Bonjour" : "Bonsoir"}, <span className="text-[#c8a030]">{username}</span> 🍺</p>
           ) : (
-            <p className="text-sm text-[#6a5838]">Jeux en ligne entre amis</p>
+            <p className="text-sm text-[#6a5838]">Bienvenue !</p>
           )}
         </header>
 

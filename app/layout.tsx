@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "La Taverne",
-  description: "Collecte de jeux de société en ligne pour jouer avec tes amis !",
+  description: "Collecte de jeux de société en ligne !",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
